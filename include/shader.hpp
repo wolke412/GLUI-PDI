@@ -10,12 +10,15 @@
 #include <sstream>
 #include <iostream>
 
-
 class Shader
 {
 public:
     unsigned int ID;
     // constructor generates the shader on the fly
+    // ------------------------------------------------------------------------
+    Shader(const char *computePath)
+    {
+    }
     // ------------------------------------------------------------------------
     Shader(const char* vertexPath, const char* fragmentPath)
     {
@@ -79,6 +82,7 @@ public:
 
         std::cout << "SHADER::COMPILED ::id" << ID  << std::endl;
     }
+    
     // activate the shader
     // ------------------------------------------------------------------------
     void use() 
@@ -115,6 +119,16 @@ public:
     void setFloat4(const std::string &name, float v1, float v2, float v3, float v4) const
     { 
         glUniform4f(glGetUniformLocation(ID, name.c_str()), v1, v2, v3, v4); 
+    }
+    void setFloat4(const std::string &name, glm::vec4 v) const
+    { 
+        glUniform4f(glGetUniformLocation(ID, name.c_str()), v.x, v.y, v.z, v.w); 
+    }
+    // ------------------------------------------------------------------------
+    void setMat3(const std::string& name, const glm::mat3& matrix) {
+        // Get the location of the uniform variable in the shader
+        GLint location = glGetUniformLocation(ID, name.c_str());
+        glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
     }
     // ------------------------------------------------------------------------
     void setMat4(const std::string& name, const glm::mat4& matrix) {

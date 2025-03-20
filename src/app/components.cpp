@@ -16,11 +16,11 @@ void Components::layout( PDI* pdi ) {
     /**
      *  ===========================
      * */
-    Pile *root = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL) ,20, BLACK );
+    Pile *root = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL) ,20, Theme::BG_SHADE_200 );
     glui->set_root(root);
 
-    Row *navbar  = new Row(Rect(0, 0, LAYOUT_FILL, 80), 20, RGB(0.2f, 0.2f, 0.27f));
-    Row *body    = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL), 20, RGB(0.1f, 0.17f, 0.27f));
+    Row *navbar  = new Row(Rect(0, 0, LAYOUT_FILL, 80), 20, Theme::BG_SHADE_300);
+    Row *body    = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL), 20, Theme::BG_SHADE_100);
     // Row footer(Rect(0, 0, LAYOUT_FILL, 80), 20, RGB(0.6f, 0.2f, 0.27f));
 
     /**
@@ -55,7 +55,7 @@ void Components::layout( PDI* pdi ) {
 
             auto p = img_h_out->get_binary();
             auto s = img_h_out->get_size();
-            for (auto i = 0; i < s->width * s->height * 3; i++) {
+            for (auto i = 0; i < s->width * s->height * img_h->get_channel_count(); i++) {
                 p[i] = std::min(p[i] + 50, 255);
             }
         }
@@ -75,11 +75,13 @@ void Components::layout( PDI* pdi ) {
 
     out_img_pile->child(im2);
      
-    Row  *images  = new Row(Size(LAYOUT_FILL, LAYOUT_FILL), 20, BLACK);
-    Pile *sidebar = new Pile( Size (400, LAYOUT_FILL), 20, RGB(.05, .15, .1));
+    Row  *images  = new Row(Size(LAYOUT_FILL, LAYOUT_FILL), 20,  Theme::BG_SHADE_100 );
+    Pile *sidebar = new Pile( Size (400, LAYOUT_FILL), 20, Theme::BG_SHADE_200 );
+
  
     images->set_padding( Padding(20) );
     sidebar->set_padding( Padding(20) );
+
 
     images->child( in_img_pile );
     images->child( out_img_pile );
@@ -96,7 +98,6 @@ struct DropdownOption {
 };
 
 void make_dropdown( GLUI* glui, Element* app_btn, Element* app_modal, const std::string name, DropdownOption *opts, size_t c_opt ) {
-
 
     Button *btn_file = new Button(name, Theme::BG_SHADE_300);
 
@@ -138,9 +139,9 @@ void make_dropdown( GLUI* glui, Element* app_btn, Element* app_modal, const std:
         auto s    = glui->get_window_size();
         auto root = glui->get_root();
 
+        // std::cout << "dropdown" << std::endl;
         dropdown->calc_children_true_rects( root->get_true_rect(), &s);
     } );
-
 
     dropdown->set_padding(Padding(20));
 
@@ -180,31 +181,45 @@ void pdi_make_file_dropdown(PDI *pdi, Element *nav, Element *fcont){
 
 void pdi_make_transform_dropdown(PDI *pdi, Element *nav, Element *fcont){
 
+    static float sx = 0.;
+    static float sy = 0.;
+    static int total_deg = 0;
+
+
     DropdownOption d[] = {
         // Transladar, Rotacionar, Espelhar, Aumentar e Diminuir.
         { "Transladar", 
             [=](Focusable& f){
-                std::cout << "Button 1" << std::endl;
+                pdi->m_translate_x += 10;
+                pdi->m_translate_y += 10;
+                pdi->transform();
             } 
         },
         { "Rotacionar", 
             [=](Focusable& f){
-                std::cout << "Button 2" << std::endl;
+                // fmod is pretty damn bad
+                pdi->m_angle = fmod(pdi->m_angle + 10, 360) ;
+                pdi->transform();
             } 
         },
         { "Espelhar", 
             [=](Focusable& f){
-                std::cout << "Button 3" << std::endl;
+                pdi->m_mirror_axis = (Axis) ( ( (int)pdi->m_mirror_axis + 1 ) % 4);
+                pdi->transform();
             } 
         },
         { "Aumentar", 
             [=](Focusable& f){
-                std::cout << "Button 4" << std::endl;
+                pdi->m_scale_x += .1; 
+                pdi->m_scale_y += .1; 
+                pdi->transform();
             } 
         },
         { "Diminuir", 
             [=](Focusable& f){
-                std::cout << "Button 5" << std::endl;
+                pdi->m_scale_x -= .1; 
+                pdi->m_scale_y -= .1; 
+                pdi->transform();
             } 
         },
     };

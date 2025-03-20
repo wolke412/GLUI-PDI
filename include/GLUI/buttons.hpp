@@ -29,7 +29,8 @@ class Button: public Focusable, public Hoverable {
 
         Button(const std::string text, RGB c): Element(Size(LAYOUT_FIT_CONTENT, LAYOUT_FIT_CONTENT), c )
         {
-            
+            capabilities |= CClickable;            
+
             auto t = std::make_unique<Text>(text);  
             child(t.get());                         
 
@@ -52,7 +53,10 @@ class Button: public Focusable, public Hoverable {
         }
 
         void click()  {
-            if (cb_onclick) {
+            std::cout << "CLICK EVENT ON :: " << id << std::endl;
+
+            if (cb_onclick)
+            {
                 cb_onclick( *this );
             }
         }

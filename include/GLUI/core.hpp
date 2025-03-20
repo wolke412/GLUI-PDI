@@ -24,6 +24,9 @@
 #include <GLUI/buttons.hpp>
 #include <GLUI/layout.hpp>
 
+
+#include <GLUI/hotkeys.hpp>
+
 /**
  * FOR DEBUGGING ONLY
  */
@@ -69,12 +72,18 @@ struct Mouse {
 
 class GLUI {
 public:
-  Size window_size = Size(800, 600);
+  Size m_window_size      = Size(800, 600);
+  Size m_last_window_size = Size(800, 600);
 
 private:
-  Mouse mouse;
 
   GLFWwindow *window;
+
+  Mouse mouse;
+  Hotkeys m_hotkeys;
+
+
+  RGB m_clear_color = BLACK;
 
   Element *shadow_root;
   Element *root;
@@ -145,7 +154,7 @@ public:
   GLUI(const GLUI &) = delete;
   GLUI &operator=(const GLUI &) = delete;
 
-  bool begin()
+  bool begin( RGB clear_color )
   {
 
     if (window == NULL)
@@ -155,12 +164,14 @@ public:
     }
 
     glfwMakeContextCurrent(window);
-    // glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
       std::cout << "Failed to initialize GLAD" << std::endl;
     }
+
+    m_clear_color = m_clear_color;
 
     glViewport(0, 0, 800, 600);
 
@@ -170,7 +181,6 @@ public:
     glfwSetMouseButtonCallback(window, cb_mouse_event);
 
     glfwSetCursorPosCallback(window, cb_mouse_move_event);
-
 
     /**
      * Initializes drawing lib
@@ -191,18 +201,36 @@ public:
 
   void loop_start()
   {
+    clear();
     process_input();
 
-    clear();
+    /**
+     * dumb shit :
+     */
+    int win_w, win_h, fb_w, fb_h;
+    glfwGetWindowSize(window, &win_w, &win_h);
+    glfwGetFramebufferSize(window, &fb_w, &fb_h);
+
+    auto s = get_window_size();
+
+    if (win_w != fb_w || win_h != fb_h)
+    {
+        std::cout << "Size mismatch! Window: " << win_w << "x" << win_h << std::endl
+                  << ", My window: " << s.width << "x" << s.height << std::endl
+                  << ", Framebuffer: " << fb_w << "x" << fb_h << std::endl;
+    }
   }
 
   void loop_end()
   {
+
+    // send commands
+    // glFinish(); 
+    // glFlush();
     glfwSwapBuffers(window);
     glfwPollEvents();
-
-    // glFinish();
   }
+
 
   void process_input()
   {
@@ -215,8 +243,10 @@ public:
     mouse.at.x = std::clamp((int16_t)x, (int16_t)0, sz.width);
     mouse.at.y = std::clamp((int16_t)y, (int16_t)0, sz.height);
 
-    // // 
+    // 
+    // Benchmark::mark();
     check_hovering(  );
+    // std::cout << Benchmark::since_mark(Unit::Micro) << " us" << std::endl;
   }
 
   void kill () {
@@ -224,14 +254,20 @@ public:
   }
 
   void clear() {
-    static auto b = BLACK;
-    glClearColor( 1., b.G, b.B, 1.0);
+    auto c = &m_clear_color;
+
+    glClearColor( c->R, c->G, c->B, 1.0 );
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
   Mouse *get_mouse()
   {
     return &mouse;
+  }
+
+  Hotkeys *get_hotkeys()
+  {
+    return &m_hotkeys;
   }
 
   void set_focused(Focusable *e)
@@ -274,11 +310,22 @@ public:
   Size get_window_size()
   {
 
-    static Size window_size(0, 0);
+    static Size static_window_size(0, 0);
 
-    glfwGetFramebufferSize(window, (int*)&window_size.width, (int*)&window_size.height);
+    glfwGetFramebufferSize(window, (int*)&static_window_size.width, (int*)&static_window_size.height);
 
-    return window_size;
+    // glfwGetWindowSize(window, (int*)&static_window_size.width, (int*)&static_window_size.height);
+    // glViewport(0, 0, static_window_size.width, static_window_size.height);
+
+    if ( 
+         static_window_size.height != m_last_window_size.height 
+      || static_window_size.width != m_last_window_size.width
+    ) {
+      // glViewport( 0, 0, static_window_size.width, static_window_size.height );
+      // glfwSwapBuffers(window);
+    }
+
+    return static_window_size;
     // return m_window_size;
   }
 
@@ -288,7 +335,7 @@ public:
     return focused == e;
   }
 
-  void blurred(Focusable *from, Focusable *to)
+  void trigger_focus_events(Focusable *from, Focusable *to)
   {
     if (from)
     {
@@ -304,12 +351,15 @@ public:
   void update_focus_to(Focusable *child)
   {
 
+    std::cout << "FOCUS ON :: " << typeid(*child).name()  << " | " << child->id << std::endl;
+
+
     if ( child == focused ) {
       return;
     } 
 
     // trigger blur events if needed.
-    blurred(focused, child);
+    trigger_focus_events(focused, child);
     
     focused = child;
   }
@@ -338,14 +388,16 @@ public:
     // std::cout << "COLLISION PATH ::HOVERABLE= " << i << std::endl;
   }
 
-
   size_t get_collision_path( Element* el,  std::vector<Element*>* result ) {
 
       auto children = el->get_children();
 
       for ( auto child : children  ) {
+
         if (Collision::is_point_in_rect( &mouse.at, child->get_true_rect() ))  {
+
           result->push_back(child);
+
           get_collision_path(child, result);
         }
       }
@@ -360,7 +412,6 @@ public:
 
     if (!e)
     {
-      // TODO: handle focus loss
       std::cout << "Clicked outside of any button" << std::endl;
 
       if ( focused ) {
@@ -370,6 +421,8 @@ public:
 
       return;
     }
+
+    std::cout << "CLICK ON :: " << e->id << std::endl;
 
     if (auto i = dynamic_cast<Focusable *>(e))
     {
@@ -387,46 +440,13 @@ public:
     }
   }
 
-  Element *check_mouse_collision(Element *child)
+  bool check_mouse_collision(Element *child)
   {
     auto tr = child->get_true_rect();
 
-    if ( child->is_hidden() ) return nullptr;
+    if ( child->is_hidden() ) return false;
 
-    std::cout << "Checking collision of " << child->id << std::endl;
-
-    if (Collision::is_point_in_rect(&mouse.at, tr))
-    {
-      if (auto i = dynamic_cast<Focusable *>(child))
-      {
-        if (i)
-        {
-          return child;
-        }
-      }
-
-      // std::cout << "Found collision of " << child->id << std::endl;
-      /**
-       * FOR NOW:
-       * If is a BUTTON; means its th e ONLY clickable thing in the path
-       * there cannot be clickable shit inside of each other
-       */
-      if (dynamic_cast<Button *>(child))
-      {
-        return child;
-      }
-
-
-      auto r = check_mouse_collisions(child);
-
-      if (r)
-      {
-        return r;
-      }
-
-      // its a non-clickable, then... fuckit
-      return nullptr;
-    }
+    return Collision::is_point_in_rect(&mouse.at, tr);
   }
 
   Element *check_mouse_collisions(Element *el)
@@ -437,21 +457,24 @@ public:
       return nullptr;
     }
 
-    auto c = el->get_children();
+    auto v = el->get_children();
 
-    for (auto it = c.rbegin(); it != c.rend(); ++it) {
+    for ( int i = v.size()-1; i >= 0; i-- )
+    {
+      auto c = v.at(i);
 
-      if (auto i = check_mouse_collision(*it) ) {
-        return i;
+      if (check_mouse_collision(c))
+      {
+        if ( c->has_capability( CFocusable ) ) {
+          return c;
+        }
+        if ( c->has_capability( CClickable) ) {
+          return c;
+        }
+
+        return check_mouse_collisions( c );
       }
     }
-
-    // for (auto child : el->get_children() )
-    // {
-    //   if (auto i = check_mouse_collision(child) ) {
-    //     return i;
-    //   }
-    // }
 
     return nullptr;
   }
@@ -477,19 +500,26 @@ public:
 
     Size sz = get_window_size();
 
-    std::cout << "ROOT::CALC" << std::endl;
+    GLint vp [4]; 
+    glGetIntegerv (GL_VIEWPORT, vp);
+
+    // std::cout << "win is (" << sz.width << "," << sz.height << ")" << std::endl;
+    // std::cout << "win is (" << vp[2] << "," << vp[3] << ")" << std::endl;
+    // std::cout << "ROOT::CALC" << std::endl;
 
     shadow_root->set_true_rect(Rect(Coord(0), sz));
 
     shadow_root->calc_children_true_rects(shadow_root->get_true_rect(), &sz);
 
-    std::cout << "ROOT::CALC ::END" << std::endl;
+    // std::cout << "ROOT::CALC ::END" << std::endl;
   }
 
   void render()
   {
+
     Size sz = get_window_size();
 
+    Benchmark::mark(); 
 
     /**
      * this is very bad for performance:
@@ -498,31 +528,43 @@ public:
      * @info: This is here because displayServer his asynchrnoous, so the BG can be rendered
      *        with a given context size, while the components did not receive the update yet
      */
-    Benchmark::mark(); 
     calc_elements();
-    std::cout << "CALC TOOK: " << Benchmark::since_mark(Micro) << " us" << std::endl;
+
+    // std::cout << "CALC TOOK: " << Benchmark::since_mark(Micro) << " us" << std::endl;
+
+    // Rect r( 40, 100, 200, 200 );
+    // draw_rounded_quad( &r, WHITE, glm::vec4( 5, 10, 0, 20 ), &sz );
+
+    // return;
 
     if (root != nullptr)
     {
       shadow_root->draw(&sz);
     }
+
+    // m_last_window_size = sz;
   }
 
   static void cb_framebuffer_resize(GLFWwindow *window, int width, int height)
   {
 
-    std::cout << "Received resize event after : " << Benchmark::since_mark( Unit::Micro ) << "micross" << std::endl;
-
-    // glfwMakeContextCurrent(window);
-    glViewport(0, 0, width, height);
-
-    auto g = GLUI::instance();
-    g->window_size.width  = width;
-    g->window_size.height = height;
-
     /**
-     * recalculates ui
+     * isso aqui estava fodendo tudo.
      */
+    // return;
+
+    int fbWidth, fbHeight;
+
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+std::cout << "Framebuffer resized: " << fbWidth << "x" << fbHeight << std::endl;
+    glViewport(0, 0, fbWidth, fbHeight);
+
+    // Update your application's size variable using the framebuffer size
+    auto g = GLUI::instance();
+    g->m_window_size.width  = fbWidth;
+    g->m_window_size.height = fbHeight;
+
+    // Recalculate UI elements if needed
     g->calc_elements();
   }
 
@@ -549,6 +591,12 @@ public:
     {
       focused->cb_key_press(w, key, scanode, action, mods);
     }
+    else {
+      if ( action == GLFW_PRESS ) {
+        GLUI::instance()->get_hotkeys()->handleEvent( key, mods );
+      }
+    }
+
   }
 
   static void cb_char_event(GLFWwindow *window, unsigned int codepoint)
@@ -580,7 +628,9 @@ public:
       glfwGetWindowPos(window, &windowed_x, &windowed_y);
       glfwGetWindowSize(window, &windowed_width, &windowed_height);
 
-      glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+      // glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+      glfwSetWindowSize( window, windowed_width + 10 , windowed_height + 10 );
+      // glfwSwapBuffers(window);
     }
 
 
@@ -589,11 +639,11 @@ public:
   {
     // std::cout << "MOUSE::MOVED" << std::endl;
 
-      auto e = GLUI::instance();
-      auto sz = e->get_window_size();
-      e->mouse.at.x = std::clamp((int16_t)xpos, (int16_t)0, sz.width);
-      e->mouse.at.y = std::clamp((int16_t)ypos, (int16_t)0, sz.height);
-      e->check_hovering();
+        // auto e = GLUI::instance();
+      // auto sz = e->get_window_size();
+      // e->mouse.at.x = std::clamp((int16_t)xpos, (int16_t)0, sz.width);
+      // e->mouse.at.y = std::clamp((int16_t)ypos, (int16_t)0, sz.height);
+      // e->check_hovering();
   }
 
   static void cb_mouse_event(GLFWwindow *window, int button, int action, int mods)

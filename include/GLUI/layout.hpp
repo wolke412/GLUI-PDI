@@ -55,8 +55,6 @@ enum ElementCapabilities {
 class Element;
 typedef std::function<void(Element*)> draw_callback_t;
 
-
-
 class Element {
 public:
     Rect rect;
@@ -68,6 +66,8 @@ public:
     draw_callback_t cb_before_draw = nullptr;
 
 protected:
+
+    // GLShit gl;
     uint32_t capabilities = 0;
 
     /**
@@ -83,7 +83,6 @@ protected:
 
     bool hidden  = false;
     bool m_fixed = false;
-
 
 public:
     Element() :              id(Element::getid()), lm(LayoutMode::Auto), rect(Size(LAYOUT_FILL)) {}
@@ -108,9 +107,9 @@ public:
     void child(Element* el)
     {
         children.push_back(el);
-
         el->set_parent(this);
     }
+
     void set_padding( Padding p ) {
         padding = p;
     }
@@ -118,10 +117,10 @@ public:
     void set_background_color(RGB c) {
         bg_color = c;
     }
+
     void set_hover_background_color(RGB c) {
         bg_color = c;
     }
-    
         
     std::vector<Element *> get_children() {
         return children;
@@ -138,9 +137,11 @@ public:
     void toggle_hidden() {
         hidden = !hidden; 
     }
+
     void hide() {
         hidden = true; 
     }
+
     void show() {
         hidden = false;
     }
@@ -152,7 +153,6 @@ public:
     RGB get_background_color() const {
         return bg_color;
     }
-
 
     /**
      * I dont like this shit very much...
@@ -191,8 +191,6 @@ public:
             el->draw(window);
         }
     }
-
-
 
     ChildrenData calc_children_data( Size* window) {
         auto c = ChildrenData{
@@ -298,6 +296,7 @@ public:
 
     void set_true_rect( Rect tr ) {
         // std::cout << "ST::TR" <<
+        // std::cout << "TR ::id" << id << ": (" << tr.width << ", " << tr.height << ")" << std::endl;
         true_rect = tr;
     }
 
@@ -354,7 +353,7 @@ public:
 
         for (auto el : children)
         {
-            if (el->rect.width != LAYOUT_FILL)
+            if (el->rect.height != LAYOUT_FILL)
             {
                 i += el->rect.height;
             }
@@ -491,12 +490,10 @@ public:
 
     virtual void calc_children_true_rects(Rect *parent, Size *window) override
     {
-        // std::cout << "TRUE_RECT::DEFAULT ccount: " << children.size() <<  std::endl;
-
         // --- Calc auto fill variables
         auto fh_count = count_fillh_children();
 
-        std::cout << "PILE::Calcing: " << std::to_string(children.size()) << "children.." << std::endl;
+        // std::cout << "PILE::Calcing: " << std::to_string(children.size()) << "children.." << std::endl;
 
         auto total_gap     = (children.size() - 1) * gap;
         auto total_padding = padding.top + padding.bottom;
@@ -541,8 +538,6 @@ public:
                 // std::cout << "Calcing FIT_CONTENT" << std::endl;
                 el->calc_fit_content_self(&copy, window);
             }
-
-            std::cout << "Settings PILE ::id "<< id << "->w to " << copy.width << "| h to " << copy.height << std::endl;
 
             el->set_true_rect(copy);
 

@@ -49,6 +49,16 @@ public:
 
         auto t = since.count();
 
+        return to_unit(t, u);
+    }
+
+    static void capture()
+    {
+        Benchmark::m_stop = high_resolution_clock::now();
+        Benchmark::m_info = mallinfo();
+    }
+
+    static uint64_t to_unit( int64_t t, Unit u  ) {
         switch (u) {
             case Min:   t /= 60;
             case Sec:   t /= 1000;
@@ -57,12 +67,6 @@ public:
             case Nano:  
             default: return t;
         }
-    }
-
-    static void capture()
-    {
-        Benchmark::m_stop = high_resolution_clock::now();
-        Benchmark::m_info = mallinfo();
     }
 
     static void display(GLUI *glui);

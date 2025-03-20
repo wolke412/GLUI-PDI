@@ -5,11 +5,26 @@
 #include <GLUI/deps/stb_image_write.h>
 
 #include <GLUI/rect.hpp>
+
 #include <string>
 #include <memory>
 #include <filesystem>
 
+struct GLShit {
+    unsigned int VBO;
+    unsigned int VAO;
+};
+
+struct GLShitFBO {
+    GLuint FBO;
+    GLuint texture;
+    GLuint RBO;
+};
+
 class ImageHandler {
+    
+public:
+    GLShitFBO m_fbo;
 
 private: 
     std::string m_path = "static/container.jpg";
@@ -20,13 +35,24 @@ private:
 
     unsigned int m_texture = UINT_MAX;
 
+    bool m_is_kernel_shader = false;
+    glm::mat3 m_kernel; 
+
 public:
     ImageHandler(const std::string path): m_path(path) {}
     ImageHandler(): m_path("") {}
 
 
     bool is_valid_image_path( std::string *path ) {
-        return std::filesystem::exists(*path);
+        if ( ! std::filesystem::exists(*path) )  {
+            return false;
+        }
+
+        if ( std::filesystem::is_directory(*path) )  {
+            return false;
+        }
+
+        return true;
     }
 
     void set_path( std::string path ) {
@@ -50,11 +76,11 @@ public:
         // m_data = std::make_shared<unsigned char *>( data );
         m_data = ( data );
 
-            std::cout << "IMGLOADER::LOADED_IMG_OF w::" 
-                << m_img_size.width 
-                << "  h::"
-                << m_img_size.width 
-                << std::endl;
+        std::cout << "IMGLOADER::LOADED_IMG_OF w::"
+                  << m_img_size.width
+                  << "  h::"
+                  << m_img_size.width
+                  << std::endl;
 
         return true;
     }
@@ -86,6 +112,18 @@ public:
         return m_data;
     }
 
+    uint8_t get_channel_count() {
+        return m_ch_count;
+    }
+
+    void set_binary( uint8_t *data ) {
+        if ( m_data ) {
+            free();
+        }
+
+        m_data = data;
+    }
+
     void copy_to( ImageHandler *to ) {
 
         if (!to) return; 
@@ -93,9 +131,11 @@ public:
         to->m_path = m_path;
         to->m_img_size = m_img_size;
         to->m_ch_count = m_ch_count;
-    
-        // Se tem uma imagem la tem que limpar ne tche
-        to->free();
+        
+        if ( to->is_loaded() ) {
+            // Se tem uma imagem la tem que limpar ne tche
+            to->free();
+        }
         
         if ( m_data && m_img_size.width > 0 && m_img_size.height > 0 ) {
             size_t dataSize = m_img_size.width * m_img_size.height * m_ch_count;
@@ -110,12 +150,33 @@ public:
     Size* get_size()  {
         return &m_img_size;
     }
+    
+    void set_is_kernel_shader( bool is_k ) {
+        // std::cout << "this = " << this << std::endl;
+        // std::cout << "&m_is_kernel_shader = " << &(this->m_is_kernel_shader) << std::endl;
+        m_is_kernel_shader = is_k;
+
+    }
+
+    bool is_kernel_shader() {
+        return m_is_kernel_shader;
+    }
+
+    glm::mat3 get_transformation_kernel() const {
+        return m_kernel;
+    }
+
+    void set_kernel( glm::mat3 k ) {
+        std::cout << "setting ku"  << std::endl;
+        m_kernel = k;
+        std::cout << " ku set"  << std::endl;
+    }
 
     /**
      * This function only generates
      * ===========================
      */
-    bool generate_texture() {
+    unsigned int generate_texture() {
 
         glGenTextures(1, &m_texture);
         glBindTexture(GL_TEXTURE_2D, m_texture);
@@ -155,8 +216,16 @@ public:
         return m_texture != UINT_MAX;
     }
 
-    unsigned int bind_texture() {
+    unsigned int get_texture() {
+        return m_texture; 
+    }
 
+    void request_texture_reload () {
+        m_texture = UINT_MAX;
+    }
+
+    unsigned int bind_texture() {
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_texture);
 
         return m_texture;

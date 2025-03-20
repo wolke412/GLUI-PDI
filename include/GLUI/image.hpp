@@ -11,7 +11,8 @@
 #include <iostream>
 #include <algorithm>
 
-
+#include <glm/ext.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include<GLUI/img_loader.hpp>
 
 
@@ -37,10 +38,27 @@ class Image : public Element {
 
             if ( il->is_loaded() ) {
 
-                tr->width = il->get_size()->width;
+                tr->width  = il->get_size()->width;
                 tr->height = il->get_size()->height;
 
-                draw_tex_quad( tr, il, window );
+                if ( il->is_kernel_shader() ) {
+                    static bool inited = false;
+                    // std::cout << "getting kernel" << std::endl;
+                    if ( !inited ) { // this will recreate it every frame but fuck it
+                        inited = true;
+                        il->m_fbo = init_fbo( tr, window, il );
+                    }
+
+                    auto k  = il->get_transformation_kernel();
+                    
+                    // std::cout << "fbo" << std::to_string(il->m_fbo.FBO) << std::endl;
+                    // std::cout << "got kernel" << glm::to_string( k ) << std::endl;
+
+                    draw_compute_tex_quad( &il->m_fbo, k, tr, il, window);
+
+                } else {
+                    draw_tex_quad(tr, il, window);
+                }
 
                 return;
             } 

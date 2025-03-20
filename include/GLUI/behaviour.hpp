@@ -19,11 +19,15 @@ class Focusable : public virtual Element {
   protected:
     bool m_focus = false;
 
-
     focus_callback_t cb_focus;
     focus_callback_t cb_blur;
 
   public:
+    Focusable()
+    {
+      capabilities |= CFocusable;
+      // hoverable_registry[this] = this; // Store reference
+    }
 
     void onfocus( focus_callback_t f ) {
       cb_focus = f;
