@@ -31,7 +31,7 @@ void printVector(float* vec, int totalSize, int rowSize) {
 
 
 void init_quad( GLShit *gl );
-void init_tex_quad( GLShit *gl );
+void init_tex_quad( GLuint *VAO, GLuint *VBO );
 
 void initialize_drawing() {
     rect_shader         = new Shader("shaders/rect.vs", "shaders/rect.fs");
@@ -70,73 +70,54 @@ GLShitFBO init_fbo(  Rect *r, Size* window, ImageHandler *i )  {
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, r->width, r->height); // use a single renderbuffer object for both a depth AND stencil buffer.
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+
     // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    return GLShitFBO{
+    auto g = GLShitFBO{
         .FBO= framebuffer,
         .texture=textureColorbuffer,
         .RBO= rbo
     };
-}
-/** 
-void calc_mtx( ImageHandler *img, glm::mat3x3 mat, GLShitFBO *g, uint8_t *nout, Rect *r, Size* win ){
 
-    float jvertices[8];
-    float vertices[16]; // 8 for coord + 8 for tex
+    init_tex_quad(&g.VAO, &g.VBO);
 
-    // Normalizes vertexes from window space to GL space
-    normalize(r, win, jvertices);
-    apply_tex(jvertices, vertices);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g->FBO);
-
-    auto sz = img->get_size();
-
-    kernel_compute_shader->setMat3( "mtx", mat );
-    kernel_compute_shader->use();
-    kernel_compute_shader->setFloat2( "center", sz->width/2, sz->height/2 );
-
-    if ( ! img->has_texture() ) {
-        img->generate_texture();
-    }
-
-    img->bind_texture();
-
-    // Draw the quad to trigger the fragment shader for each pixel
-    glBindVertexArray(g->VAO);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); 
-
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    glReadPixels(0, 0, sz->width, sz->height, GL_RGB, GL_UNSIGNED_BYTE, nout);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
-}
-*/
-
-void read_fbo( uint8_t *nout, Size* sz, GLShitFBO* g ) {
-
-    glBindFramebuffer(GL_FRAMEBUFFER, g->FBO);
-
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    glReadPixels(0, 0, sz->width, sz->height, GL_RGB, GL_UNSIGNED_BYTE, nout);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
+    return g;
 }
 
+void init_tex_quad( GLuint *VAO, GLuint *VBO ){
+
+
+    glGenVertexArrays(1, VAO);
+    glGenBuffers(1, VBO);
+
+    glBindVertexArray(*VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, *VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 4 * 2, nullptr, GL_DYNAMIC_DRAW);
+
+    // position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
 
 void init_quad( GLShit *gl ){
 
-    glad_glGenVertexArrays(1, &gl->VAO);
+    glGenVertexArrays(1, &gl->VAO);
 
     glGenBuffers(1, &gl->VBO);
 
     glBindVertexArray(gl->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, gl->VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 4, nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 4, nullptr, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0); 
@@ -145,8 +126,6 @@ void init_quad( GLShit *gl ){
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
-
-void init_tex_quad( GLShit *gl ){}
 
 
 // Normalize  to NDC
@@ -240,8 +219,6 @@ void draw_rounded_quad( Rect *r, RGB c, glm::vec4 corners, Size* window) {
     float vertices[8];
 
     normalize(r, window, vertices);
-
-    // normalize_rect(r, window);
 
     if ( rect_shader == nullptr ) {
         std::cout << "ERROR::UNINITIALIZED_SHADER ::" << "rounded_rect_shader" << std::endl;
@@ -339,8 +316,6 @@ void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandle
     normalize(&force0, &fbosize, jvertices);
     apply_tex(jvertices, vertices);
 
-    unsigned int VAO, VBO;
-
     // render
     // ------
     // bind to framebuffer and draw scene as we normally would to color texture
@@ -351,18 +326,25 @@ void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandle
 
     glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    // unsigned int VAO, VBO;
+    // glGenVertexArrays(1, &VAO);
+    // glGenBuffers(1, &VBO);
 
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // glBindVertexArray(VAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // position attribute
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    // // position attribute
+    // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    // glEnableVertexAttribArray(1);
+
+    glBindVertexArray(g->VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, g->VBO);
+
+    // Update buffer with new vertex data
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
     if ( ! img->has_texture() ) {
         img->generate_texture();
@@ -411,7 +393,7 @@ void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandle
     glDisable(GL_DEPTH_TEST);
 
     // Cleanup
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
 }
 

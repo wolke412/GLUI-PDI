@@ -41,18 +41,17 @@ class Image : public Element {
                 tr->width  = il->get_size()->width;
                 tr->height = il->get_size()->height;
 
+                // this is a very dumb way of achieving this
                 if ( il->is_kernel_shader() ) {
+
                     static bool inited = false;
-                    // std::cout << "getting kernel" << std::endl;
-                    if ( !inited ) { // this will recreate it every frame but fuck it
+
+                    if ( !inited ) { 
                         inited = true;
                         il->m_fbo = init_fbo( tr, window, il );
                     }
 
                     auto k  = il->get_transformation_kernel();
-                    
-                    // std::cout << "fbo" << std::to_string(il->m_fbo.FBO) << std::endl;
-                    // std::cout << "got kernel" << glm::to_string( k ) << std::endl;
 
                     draw_compute_tex_quad( &il->m_fbo, k, tr, il, window);
 

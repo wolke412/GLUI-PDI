@@ -23,7 +23,7 @@ int main()
 
     glui.calc_elements();
 
-    pdi.get_input()->set_path("static/512.jpg");
+    pdi.get_input()->set_path("static/1024.jpg");
     pdi.get_input()->load();
     pdi.get_input()->copy_to(pdi.get_output());
 
@@ -66,44 +66,41 @@ int main()
         pdi.transform();
     });
 
+    glui.get_hotkeys()->registerHotkey(GLFW_KEY_S, GLFW_MOD_CONTROL , [&](){
+        std::cout << "Getting bytes" << std::endl;
 
-    GLuint query;
-    GLuint64 gpu_time;
-    glGenQueries(1, &query);
+        auto o = pdi.get_output(); 
+
+        o->read_generated_fbo();
+    
+        std::cout << "After read"  << std::endl;
+
+        auto bin = o->get_binary();
+
+        o->save( "static/save.jpg" );
+    });
+
+    Benchmark::monitor_gpu();
+
     while( ! glui.should_close() )
     {
         Benchmark::start();
-        glBeginQuery(GL_TIME_ELAPSED, query);
 
         glui.loop_start();
-
-        Benchmark::capture();
 
         /**
          * 
          */
         glui.render();
 
+        // glFinish();
 
-        RenderText( "GPU time: " + std::to_string( Benchmark::to_unit( gpu_time, Unit::Micro ) ) , Coord(0, 60), .5, RGB(0, .8, .45), &win);
+        Benchmark::capture();
 
         Benchmark::display(pdi.get_glui());
 
-        glFinish();
-
         glui.loop_end();
-
-        glEndQuery(GL_TIME_ELAPSED);
-        glGetQueryObjectui64v(query, GL_QUERY_RESULT, &gpu_time);
-
-        // Rect r( 100, 200, 400, 400 );
-        // for( int i = 0; i < 1000000; i++) {
-        //     draw_quad( &r, WHITE, &win );
-        // }
-
-
     }  
-
 
     glui.kill();
 

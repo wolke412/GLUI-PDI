@@ -16,9 +16,18 @@ struct GLShit {
 };
 
 struct GLShitFBO {
+    GLuint VBO;
+    GLuint VAO;
     GLuint FBO;
     GLuint texture;
     GLuint RBO;
+
+    void read( uint8_t* nout, Size* sz ) {
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        glReadPixels(0, 0, sz->width, sz->height, GL_RGB, GL_UNSIGNED_BYTE, nout);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
+    };
 };
 
 class ImageHandler {
@@ -62,6 +71,8 @@ public:
             free();    
             m_data = nullptr;
         }
+
+        request_texture_reload();
     }
 
     bool load(  )  {
@@ -87,10 +98,9 @@ public:
 
     bool save(const std::string &as) const {
         if (!m_data || m_img_size.width <= 0 || m_img_size.height <= 0 || m_ch_count <= 0) {
-            return false; // Ensure there's valid image data
+            return false;
         }
     
-        // Extract file extension
         std::string ext = as.substr(as.find_last_of('.') + 1);
     
         bool success = false;
@@ -152,14 +162,25 @@ public:
     }
     
     void set_is_kernel_shader( bool is_k ) {
-        // std::cout << "this = " << this << std::endl;
-        // std::cout << "&m_is_kernel_shader = " << &(this->m_is_kernel_shader) << std::endl;
         m_is_kernel_shader = is_k;
-
     }
 
     bool is_kernel_shader() {
         return m_is_kernel_shader;
+    }
+
+    void read_generated_fbo() {
+
+        std::cout << "Reading from FBO"  << std::endl;
+
+        // if ( is_loaded() ) {
+        //     free();
+        //     std::cout << "Freed old"  << std::endl;
+        // }
+
+        m_fbo.read( m_data, &m_img_size );
+
+        std::cout << "Successfully read."  << std::endl;
     }
 
     glm::mat3 get_transformation_kernel() const {

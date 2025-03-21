@@ -3,9 +3,12 @@
 
 #include <GLUI/rect.hpp>
 #include <GLUI/img_loader.hpp>
+
 void initialize_drawing();
 
 GLShitFBO init_fbo(  Rect *r, Size* window, ImageHandler *i );
+
+void read_fbo( uint8_t *nout, Size* sz, GLShitFBO* g );
 
 void calc_mtx( ImageHandler *img, glm::mat3x3 mat, GLShitFBO *g, uint8_t *nout, Rect *r, Size* win );
 

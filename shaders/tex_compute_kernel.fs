@@ -19,6 +19,9 @@ void main()
     vec2 tc = TexCoord;
     tc.y = 1. - tc.y;
 
+    // FragColor = texture( ourTexture, tc );
+    // return
+
     // invert translation to "immune" it against the next inverse function
     vec2 translationUV = vec2(-u_kernel[0][2], u_kernel[1][2]) / u_texSize; 
 
