@@ -171,7 +171,7 @@ public:
       std::cout << "Failed to initialize GLAD" << std::endl;
     }
 
-    m_clear_color = m_clear_color;
+    m_clear_color = clear_color;
 
     glViewport(0, 0, 800, 600);
 
@@ -230,7 +230,6 @@ public:
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
-
 
   void process_input()
   {
@@ -314,9 +313,6 @@ public:
 
     glfwGetFramebufferSize(window, (int*)&static_window_size.width, (int*)&static_window_size.height);
 
-    // glfwGetWindowSize(window, (int*)&static_window_size.width, (int*)&static_window_size.height);
-    // glViewport(0, 0, static_window_size.width, static_window_size.height);
-
     if ( 
          static_window_size.height != m_last_window_size.height 
       || static_window_size.width != m_last_window_size.width
@@ -326,7 +322,6 @@ public:
     }
 
     return static_window_size;
-    // return m_window_size;
   }
 
 
@@ -550,13 +545,15 @@ public:
 
     /**
      * isso aqui estava fodendo tudo.
+     * ele demora pra disparar o evento.
      */
+
     // return;
 
     int fbWidth, fbHeight;
 
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-std::cout << "Framebuffer resized: " << fbWidth << "x" << fbHeight << std::endl;
+  std::cout << "Framebuffer resized: " << fbWidth << "x" << fbHeight << std::endl;
     glViewport(0, 0, fbWidth, fbHeight);
 
     // Update your application's size variable using the framebuffer size
@@ -592,8 +589,8 @@ std::cout << "Framebuffer resized: " << fbWidth << "x" << fbHeight << std::endl;
       focused->cb_key_press(w, key, scanode, action, mods);
     }
     else {
-      if ( action == GLFW_PRESS ) {
-        GLUI::instance()->get_hotkeys()->handleEvent( key, mods );
+      if ( action == GLFW_PRESS || action == GLFW_REPEAT ) {
+        GLUI::instance()->get_hotkeys()->handle( key, mods );
       }
     }
 

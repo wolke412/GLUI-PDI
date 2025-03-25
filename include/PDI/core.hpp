@@ -51,29 +51,33 @@ class PDIPipeline {
         }
 };
 
-
+/**
+ *  =============================================
+ *               o que interessa
+ *  =============================================
+ */
 class PDI {
-    private:
-        GLUI* glui;
+private:
+    GLUI *glui;
 
-        ImageHandler* input;
-        ImageHandler* output;
+    ImageHandler *input;
+    ImageHandler *output;
 
-        PDIPipeline pipeline;
+    PDIPipeline pipeline;
 
+public:
 
-    public:
+    // transformations
+    float m_scale_x = 1, 
+            m_scale_y = 1;
+    float m_translate_x = 0, m_translate_y = 0;
+    float m_angle = 0;
+    Axis  m_mirror_axis = None;
 
-        float m_scale_x = 1, 
-              m_scale_y = 1;
-        float m_translate_x = 0, m_translate_y = 0;
-        float m_angle = 0;
-        Axis  m_mirror_axis;
-
-        PDI( GLUI*g ): glui(g) {
-            input  = new ImageHandler();
-            output = new ImageHandler();
-        };
+    PDI( GLUI*g ): glui(g) {
+        input  = new ImageHandler();
+        output = new ImageHandler();
+    };
 
     GLUI* get_glui() {
         return glui;
@@ -84,13 +88,13 @@ class PDI {
 
     void layout();
 
+    // file menu
     void open_image();
     void save_image();
     std::string about();
     void exit();
 
-    void reset_output();
-
+    //
     void translate();
     void rotate();
     void scale();
@@ -100,6 +104,8 @@ class PDI {
     // void transform( int t, float angle );
 
 
+    // testing functions
+    void reset_output();
     void test_pipe() {
         pipeline.push( TranslateBP{ 1.7, 4.} );
         pipeline.push( ScaleBP{ 1.7 } );

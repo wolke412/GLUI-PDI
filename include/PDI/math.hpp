@@ -10,9 +10,12 @@
 #define INVALID_MAT  mat{.data=nullptr,.r=0,.c=0}
 
 enum Axis {
+    None = 0,
     X  = 1 << 0,
     Y  = 1 << 1,
     Z  = 1 << 2,
+
+    // X(1) -> Y(2) -> XY(3) -> NONe
 };
 
 extern float __kernel_rot_x[9];
@@ -52,9 +55,7 @@ struct mat {
 
 
     ~mat() {
-        // std::cout << "DESCTRUCTING MAT" << std::endl;
         if ( heap ) {
-            // std::cout << "Destroy mat ::HEAP" << std::endl;
             delete[] data;
         }
     }
@@ -63,12 +64,9 @@ struct mat {
 
 
 mat mat1( float* values, uint8_t c);
-// mat mat1( float* values, uint8_t c);
 mat mat3( float* values, uint8_t c);
 
 mat mat_mul( mat *m1, mat *m2 );
-// void mat_mul_mut( mat *m1, mat *m2 );
-
 
 
 void invert_affine_2x3(const mat* r, mat* r_inv);

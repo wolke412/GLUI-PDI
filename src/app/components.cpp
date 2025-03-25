@@ -122,7 +122,6 @@ void make_dropdown( GLUI* glui, Element* app_btn, Element* app_modal, const std:
         dropdown->child(btn_drop);
     }
 
-
     // por valor pq é tudo ponteiro nesse merda mesmo :: [=] <-
     btn_file->onfocus([=](Focusable &f){ dropdown->show(); });
     btn_file->onblur([=](Focusable &f) { dropdown->hide(); });

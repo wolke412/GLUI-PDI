@@ -36,14 +36,16 @@ public:
     GLShitFBO m_fbo;
 
 private: 
+
     std::string m_path = "static/container.jpg";
     Size m_img_size = Size(0);
     int m_ch_count = 0;
-
     unsigned char * m_data = nullptr;
 
+    //  openGL stuff
     unsigned int m_texture = UINT_MAX;
 
+    // when using gpu accelaration
     bool m_is_kernel_shader = false;
     glm::mat3 m_kernel; 
 

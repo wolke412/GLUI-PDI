@@ -39,6 +39,7 @@ void PDI::layout() {
 }
 
 void PDI::transform() {
+
     // reset output
     input->copy_to( output );
 
@@ -46,7 +47,7 @@ void PDI::transform() {
     mat kernel   = identity_matrix(buf);
 
     // --- MIRROR ---
-    if ( m_mirror_axis != 0 ) {
+    if ( m_mirror_axis != Axis::None ) {
         float buf_m[9] = {0};
         mirror_matrix( m_mirror_axis, buf_m );
         mat mirror = mat3( buf_m, 3 );
@@ -89,82 +90,20 @@ void PDI::transform() {
     int h = sz->height;
     auto ch = input->get_channel_count();
 
+    // allocate output bufffer
     uint8_t* nout = (uint8_t *)calloc( w*h*ch, sizeof(uint8_t)); 
 
+    //  GPU computing
+    // =====================================
+    output->set_is_kernel_shader(false);
+    // output->set_is_kernel_shader(true);
+    // output->set_kernel( glm::make_mat3x3( kernel.data ) );
+
+    //  CPU computing
+    // =====================================
     // __simd_kernel_multiplication( &kernel, in, nout, sz, ch);
     // __isimd_kernel_multiplication( &kernel, in, nout, sz, ch);
-    // __dflt_kernel_multiplication( &kernel, in, nout, sz, ch);
-
-    std::cout << "before set" << std::endl;
-
-    // output->set_is_kernel_shader(true);
-    output->set_kernel( glm::make_mat3x3( kernel.data ) );
-
-    // output->set_binary(nout);
-    // output->request_texture_reload();
-    
-    std::cout << "after set" << std::endl;
-    return;
-}
-
-void PDI::rotate() {
-
-    std::cout << std::endl;
-    std::cout << "================================="<< std::endl;
-    std::cout << "PDI::TRANSFORM::ROTATE ::deg =" << m_angle << std::endl;
-    std::cout << "================================="<< std::endl;
-
-    float buf[9] = {0};
-    rotation_matrix( m_angle, buf, Axis::Z );
-    mat r = mat3( buf, 3);
-
-    auto in  = output->get_binary();
-    auto out = output->get_binary();
-    
-    Benchmark::mark();
-
-    auto sz = input->get_size();
-    int w = sz->width;
-    int h = sz->height;
-    auto ch = input->get_channel_count();
-
-    auto nout = (uint8_t *)calloc( w*h*ch, sizeof(uint8_t)); //
-    // posix_memalign((void **)&nout, 32, w*h*ch * sizeof(uint8_t));
-
-    __simd_kernel_multiplication( &r, in, nout, sz, ch);
-
-    output->set_binary(nout);
-    output->request_texture_reload();
-
-    // free( nout );
-
-    return;
-}
-
-void PDI::scale() {
-
-    std::cout << std::endl;
-    std::cout << "================================="<< std::endl;
-    std::cout << "PDI::TRANSFORM::SCALE ::fact =" << m_scale_x << ":" << m_scale_y << std::endl;
-    std::cout << "================================="<< std::endl;
-
-    float buf[9] = {0};
-    scale_matrix( m_scale_x, m_scale_y, buf );
-    mat r = mat3( buf, 3);
-
-    auto in  = output->get_binary();
-    auto out = output->get_binary();
-    
-    Benchmark::mark();
-
-    auto sz = input->get_size();
-    int w = sz->width;
-    int h = sz->height;
-    auto ch = input->get_channel_count();
-
-    auto nout = (uint8_t *)calloc( w*h*ch, sizeof(uint8_t)); //
-
-    __dflt_kernel_multiplication( &r, in, nout, sz, ch);
+     __dflt_kernel_multiplication( &kernel, in, nout, sz, ch);
 
     output->set_binary(nout);
     output->request_texture_reload();
@@ -173,31 +112,61 @@ void PDI::scale() {
 }
 
 void fill_holes(uint8_t* img, int w, int h, uint8_t ch) {
-    for (int i = 1; i < h - 1; ++i) {
-        for (int j = 1; j < w - 1; ++j) {
-            auto idx = (i * w + j) * ch;
-            bool is_hole = true;
+    std::vector<uint8_t> temp(img, img + w * h * ch);  // copy original image
 
-            for (int c = 0; c < ch; ++c) {
-                if (img[idx + c] != 0) {
-                    is_hole = false;
-                    break;
-                }
+    // essa função é mega burra; ela assume que um '0' é um buraco
+    // TODO: implementar uma mascara; quando um pixel for setado corretamente
+    // atualiza mascara, depois itera a imagem avaliando a validade atraves da
+    // mascara
+    int filled = 0;
+    for (int i = 1; i < h - 1; i++) {
+        for (int j = 1; j < w - 1; j++) {
+
+            auto idx = (i * w + j) * ch;
+
+            int chs = 0;
+            for (int c = 0; c < ch; c++)
+            {
+                chs += img[idx + c]; 
             }
 
+            bool is_hole = chs == 0;
+
             if (is_hole) {
-                for (int c = 0; c < ch; ++c) {
-                    int sum = 0;
-                    sum += img[((i-1)*w + j) * ch + c];
-                    sum += img[((i+1)*w + j) * ch + c];
-                    sum += img[(i*w + j-1) * ch + c];
-                    sum += img[(i*w + j+1) * ch + c];
-                    img[idx + c] = sum / 4;
+
+                // interpolation
+                for (int c = 0; c < ch; c++) {
+                    for (int c = 0; c < ch; c++) {
+                        int sum = 0;
+                        int count = 0;
+                    
+                        // up
+                        int val = temp[((i - 1) * w + j) * ch + c];
+                        if (val != 0) { sum += val; count++; }
+                    
+                        // down
+                        val = temp[((i + 1) * w + j) * ch + c];
+                        if (val != 0) { sum += val; count++; }
+                    
+                        // left
+                        val = temp[(i * w + j - 1) * ch + c];
+                        if (val != 0) { sum += val; count++; }
+                    
+                        // right
+                        val = temp[(i * w + j + 1) * ch + c];
+                        if (val != 0) { sum += val; count++; }
+
+                        img[idx + c] = count == 0 ? 0 : sum / count;
+                    }
                 }
+
+                filled++;
             }
         }
     }
+    std::cout << "Filled " << filled <<  " holes." << std::endl;
 }
+
 
 /**
  * this is not used for now
@@ -375,15 +344,17 @@ void __dflt_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz,
             xd = (int)(x);
             yd = (int)(y);
 
-            // Discarding removes the wweird edges that can happen if we dont discard 
+            // Discarding removes the weird edges that can happen if we dont discard 
             if ( xd < 0 || xd > w-1 || yd < 0  || yd > h-1 ) {
                 continue;
             }
 
-            ///  favor não ler o codigo abaixo
+            // favor não ler o codigo abaixo
+
             auto i_at = (h-1-i)  * w + j;
             auto o_at = (h-1-yd) * w + xd;
 
+            // map pixel 
             i_at *= ch; // RGB... RGBA ...
             o_at *= ch; // RGB... RGBA ...
 
@@ -517,4 +488,79 @@ void PDI::test_math () {
 
     // transform( 2, 270 );
 
+}
+
+
+
+
+
+/**
+ * ===================================
+ *         FUNÇÕES APOSENTADAS
+ * ===================================
+ */
+
+void PDI::rotate() {
+
+    std::cout << std::endl;
+    std::cout << "================================="<< std::endl;
+    std::cout << "PDI::TRANSFORM::ROTATE ::deg =" << m_angle << std::endl;
+    std::cout << "================================="<< std::endl;
+
+    float buf[9] = {0};
+    rotation_matrix( m_angle, buf, Axis::Z );
+    mat r = mat3( buf, 3);
+
+    auto in  = output->get_binary();
+    auto out = output->get_binary();
+    
+    Benchmark::mark();
+
+    auto sz = input->get_size();
+    int w = sz->width;
+    int h = sz->height;
+    auto ch = input->get_channel_count();
+
+    auto nout = (uint8_t *)calloc( w*h*ch, sizeof(uint8_t)); //
+    // posix_memalign((void **)&nout, 32, w*h*ch * sizeof(uint8_t));
+
+    __simd_kernel_multiplication( &r, in, nout, sz, ch);
+
+    output->set_binary(nout);
+    output->request_texture_reload();
+
+    // free( nout );
+
+    return;
+}
+
+void PDI::scale() {
+
+    std::cout << std::endl;
+    std::cout << "================================="<< std::endl;
+    std::cout << "PDI::TRANSFORM::SCALE ::fact =" << m_scale_x << ":" << m_scale_y << std::endl;
+    std::cout << "================================="<< std::endl;
+
+    float buf[9] = {0};
+    scale_matrix( m_scale_x, m_scale_y, buf );
+    mat r = mat3( buf, 3);
+
+    auto in  = output->get_binary();
+    auto out = output->get_binary();
+    
+    Benchmark::mark();
+
+    auto sz = input->get_size();
+    int w = sz->width;
+    int h = sz->height;
+    auto ch = input->get_channel_count();
+
+    auto nout = (uint8_t *)calloc( w*h*ch, sizeof(uint8_t)); //
+
+    __dflt_kernel_multiplication( &r, in, nout, sz, ch);
+
+    output->set_binary(nout);
+    output->request_texture_reload();
+    
+    return;
 }

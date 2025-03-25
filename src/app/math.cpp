@@ -56,18 +56,19 @@ float cosd( float deg ) {
  * 
  */
 
-void mat_mul_33_31( mat *ma1, mat *ma2, mat *res) {
 
+void __mat_mul( mat *m1, mat *m2, float *buf);
+void mat_mul_mut( mat *m1, mat *m2 );
+
+// ========================================
+void mat_mul_33_31( mat *ma1, mat *ma2, mat *res) {
     auto m1 = ma1->data;
     auto m2 = ma2->data;
+
     res->data[0] = m1[0] * m2[0] + m1[1] * m2[1] + m1[2] * m2[2];
     res->data[1] = m1[3] * m2[0] + m1[4] * m2[1] + m1[5] * m2[2];
     res->data[2] = m1[6] * m2[0] + m1[7] * m2[1] + m1[8] * m2[2];
 }
-
-void __mat_mul( mat *m1, mat *m2, float *buf);
-void mat_mul_mut( mat *m1, mat *m2 );
-void __mat_mul_gpt(mat *m1, mat *m2, float *buf);
 
 mat mat::mul(  mat *other )  {
     return mat_mul(this, other);
@@ -84,13 +85,14 @@ void mat::copy_to( mat *other ) {
     } 
 }
 
-
+/**
+ * basically memcpy2() :P
+ */
 void cpbuffer( float* from, float* to, size_t sz ) {
     for ( auto i = 0; i < sz; i++) {
         to[i] = from[i];
     } 
 }
-
 
 void mat_mul_mut( mat *m1, mat *m2 ) {
     float buf[ 16 ];
@@ -122,8 +124,9 @@ void __mat_mul( mat *m1, mat *m2, float *buf) {
     }
 
     return;
-    // // if we were to alter the original, but i don't think this is 
-    // // a good choice 
+
+    // if we were to alter the original, but i don't think this is 
+    // a good choice 
     for ( auto i = 0; i < m2->r * m2->c; i++) {
         m2->data[i] = buf[i];
     } 
@@ -135,7 +138,6 @@ mat mat_mul( mat *m1, mat *m2 ) {
 
     float* buf = new float[ m1->r * m2->c ]();
 
-    // __mat_mul_gpt( m1, m2, buf );
     __mat_mul( m1, m2, buf );
 
     return mat{
@@ -147,37 +149,13 @@ mat mat_mul( mat *m1, mat *m2 ) {
 }
 
 
-void __mat_mul_gpt(mat *m1, mat *m2, float *buf) {
-    if (m1->c != m2->r) return;
-
-    // Step 1: Transpose m2 to improve cache efficiency
-    float *m2_t = new float[m2->r * m2->c];
-    for (int i = 0; i < m2->r; i++) {
-        for (int j = 0; j < m2->c; j++) {
-            m2_t[j * m2->r + i] = m2->data[i * m2->c + j]; // Transpose
-        }
-    }
-
-    // Step 2: Multiply using cache-friendly access
-    for (int i = 0; i < m1->r; i++) {
-        for (int j = 0; j < m2->c; j++) {
-            float sum = 0;
-            for (int k = 0; k < m1->c; k++) {
-                sum += m1->data[i * m1->c + k] * m2_t[j * m2->r + k]; // Access row-wise!
-            }
-            buf[i * m2->c + j] = sum;
-        }
-    }
-
-    delete[] m2_t; // Free memory
-}
-
 void invert_affine_2x3(const mat* r, mat* r_inv) {
     float M00 = r->data[0], M01 = r->data[1], M02 = r->data[2];
     float M10 = r->data[3], M11 = r->data[4], M12 = r->data[5];
 
     float det = M00 * M11 - M01 * M10;
 
+    // se o determinante estiver muito proximo de zero;
     if (fabsf(det) < 1e-8f) {
         std::cerr << "Singular matrix!" << std::endl;
         return;
@@ -281,9 +259,9 @@ void translate_matrix(float x, float y, float *buf)
 
 void mirror_matrix( Axis ax, float *buf)
 {
-    auto sz = 9;
+    constexpr auto sz = 9;
 
-    cpbuffer(__kernel_translate, buf, sz);
+    cpbuffer(__kernel_mirror, buf, sz);
 
     if (ax & Axis::X)
     {
@@ -296,6 +274,9 @@ void mirror_matrix( Axis ax, float *buf)
     }
 }
 
+/**
+ * its a 3x3
+ */
 mat identity_matrix ( float* buf )  {
 
     mat kernel = mat3( buf, 3 );

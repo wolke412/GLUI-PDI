@@ -22,12 +22,12 @@ struct Hotkey {
 
 class Hotkeys {
 public:
-    void registerHotkey(char key, int modifiers, std::function<void()> callback) {
+    void registerhk(char key, int modifiers, std::function<void()> callback) {
         Hotkey hk{key, modifiers, callback};
         hotkeys[{key, modifiers}] = hk;
     }
 
-    void handleEvent(char key, int mods) {
+    void handle(char key, int mods) {
         std::cout << "Checking hotkeys for " << key << " with " << mods << std::endl;
         Hotkey* best = nullptr;
 
