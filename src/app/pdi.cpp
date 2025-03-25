@@ -2,6 +2,15 @@
 #include <PDI/pdi.hpp>
 
 #include <immintrin.h>  // For AVX2 intrinsics
+#include <variant>
+                        //
+                       
+/**
+ *
+ * 
+ */
+#define USE_GPU         ( 1 )
+
 
 /**
  * 
@@ -38,6 +47,16 @@ void PDI::layout() {
     Components::layout(this);
 }
 
+/**
+ * ============================================================ 
+ *   Transformations
+ *   ---------------------------------------- 
+ *   This function applies geometric transformations to the 
+ *   image bytes using a kernel.
+ *
+ *   can use both GPU or CPU
+ * ============================================================ 
+ */
 void PDI::transform() {
 
     // reset output
@@ -85,6 +104,18 @@ void PDI::transform() {
     
     Benchmark::mark();
 
+
+
+#if USE_GPU == 1 
+    //  GPU computing
+    // =====================================
+    output->set_is_kernel_shader(true);
+    output->set_is_kernel_shader(true);
+    output->set_kernel( glm::make_mat3x3( kernel.data ) );
+#else
+    //  CPU computing
+    // =====================================
+    //
     auto sz = input->get_size();
     int w = sz->width;
     int h = sz->height;
@@ -92,22 +123,17 @@ void PDI::transform() {
 
     // allocate output bufffer
     uint8_t* nout = (uint8_t *)calloc( w*h*ch, sizeof(uint8_t)); 
-
-    //  GPU computing
-    // =====================================
-    output->set_is_kernel_shader(false);
-    // output->set_is_kernel_shader(true);
-    // output->set_kernel( glm::make_mat3x3( kernel.data ) );
-
-    //  CPU computing
-    // =====================================
     // __simd_kernel_multiplication( &kernel, in, nout, sz, ch);
     // __isimd_kernel_multiplication( &kernel, in, nout, sz, ch);
      __dflt_kernel_multiplication( &kernel, in, nout, sz, ch);
+    
+    // this can be known using the same shader inside ImageHandler class; 
+    output->set_is_kernel_shader(true);
 
     output->set_binary(nout);
     output->request_texture_reload();
-    
+#endif 
+
     return;
 }
 
