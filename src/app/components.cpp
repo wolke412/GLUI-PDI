@@ -15,13 +15,12 @@ void Components::layout( PDI* pdi ) {
 
     /**
      *  ===========================
-     * */
-    Pile *root = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL) ,20, Theme::BG_SHADE_200 );
+     */
+    Pile *root = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL) , 0, Theme::BG_SHADE_200 );
     glui->set_root(root);
 
     Row *navbar  = new Row(Rect(0, 0, LAYOUT_FILL, 80), 20, Theme::BG_SHADE_300);
     Row *body    = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL), 20, Theme::BG_SHADE_100);
-    // Row footer(Rect(0, 0, LAYOUT_FILL, 80), 20, RGB(0.6f, 0.2f, 0.27f));
 
     /**
      * 
@@ -191,34 +190,34 @@ void pdi_make_transform_dropdown(PDI *pdi, Element *nav, Element *fcont){
             [=](Focusable& f){
                 pdi->m_translate_x += 10;
                 pdi->m_translate_y += 10;
-                pdi->transform();
+                pdi->update();
             } 
         },
         { "Rotacionar", 
             [=](Focusable& f){
                 // fmod is pretty damn bad
                 pdi->m_angle = fmod(pdi->m_angle + 10, 360) ;
-                pdi->transform();
+                pdi->update();
             } 
         },
         { "Espelhar", 
             [=](Focusable& f){
                 pdi->m_mirror_axis = (Axis) ( ( (int)pdi->m_mirror_axis + 1 ) % 4);
-                pdi->transform();
+                pdi->update();
             } 
         },
         { "Aumentar", 
             [=](Focusable& f){
                 pdi->m_scale_x += .1; 
                 pdi->m_scale_y += .1; 
-                pdi->transform();
+                pdi->update();
             } 
         },
         { "Diminuir", 
             [=](Focusable& f){
                 pdi->m_scale_x -= .1; 
                 pdi->m_scale_y -= .1; 
-                pdi->transform();
+                pdi->update();
             } 
         },
     };

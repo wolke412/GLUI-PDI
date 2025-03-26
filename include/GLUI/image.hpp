@@ -42,19 +42,8 @@ class Image : public Element {
                 tr->height = il->get_size()->height;
 
                 // this is a very dumb way of achieving this
-                if ( il->is_kernel_shader() ) {
-
-                    static bool inited = false;
-
-                    if ( !inited ) { 
-                        inited = true;
-                        il->m_fbo = init_fbo( tr, window, il );
-                    }
-
-                    auto k  = il->get_transformation_kernel();
-
-                    draw_compute_tex_quad( &il->m_fbo, k, tr, il, window);
-
+                if ( il->is_framebuffer() ) {
+                    fbo_to_screen( &il->m_fbo, tr, il, window );
                 } else {
                     draw_tex_quad(tr, il, window);
                 }

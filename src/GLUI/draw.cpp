@@ -1,4 +1,5 @@
 #include <GLUI/draw.hpp>
+#include <GLUI/framebuffer.hpp>
 
 
 GLShit RECT;
@@ -31,7 +32,6 @@ void printVector(float* vec, int totalSize, int rowSize) {
 
 
 void init_quad( GLShit *gl );
-void init_tex_quad( GLuint *VAO, GLuint *VBO );
 
 void initialize_drawing() {
     rect_shader         = new Shader("shaders/rect.vs", "shaders/rect.fs");
@@ -44,52 +44,7 @@ void initialize_drawing() {
 }
 
 
-
-
-
-GLShitFBO init_fbo(  Rect *r, Size* window, ImageHandler *i )  {
-    
-    // framebuffer configuration
-    // -------------------------
-
-    unsigned int framebuffer;
-    glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-    // create a color attachment texture
-    unsigned int textureColorbuffer;
-    glGenTextures(1, &textureColorbuffer);
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, r->width, r->height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-    unsigned int rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, r->width, r->height); // use a single renderbuffer object for both a depth AND stencil buffer.
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-
-    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    auto g = GLShitFBO{
-        .FBO= framebuffer,
-        .texture=textureColorbuffer,
-        .RBO= rbo
-    };
-
-    init_tex_quad(&g.VAO, &g.VBO);
-
-    return g;
-}
-
-void init_tex_quad( GLuint *VAO, GLuint *VBO ){
-
+void set_buffers( GLuint *VAO, GLuint *VBO ){
 
     glGenVertexArrays(1, VAO);
     glGenBuffers(1, VBO);
@@ -250,8 +205,6 @@ void draw_quad( Rect r, RGB c , Size* window) {
 }
 
 
-
-
 void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
 
     float jvertices[8]; 
@@ -304,15 +257,19 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
 
 }
 
-void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandler *img, Size* win) {
+void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img ) {
+
+    std::cout << "computing tex quad" << std::endl;
 
     float jvertices[8]; 
     float vertices[16]; // 8 for coord + 8 for tex
 
+    auto r = img->get_size();
     Size fbosize(r->width, r->height);
 
     // Normalizes vertexes from window space to GL space
     auto force0 = Rect(Size(r->width, r->height));
+
     normalize(&force0, &fbosize, jvertices);
     apply_tex(jvertices, vertices);
 
@@ -322,35 +279,19 @@ void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandle
     glBindFramebuffer(GL_FRAMEBUFFER, g->FBO );
     glViewport( 0, 0, r->width, r->height );
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    // glClearColor(1.0f, 0.0f, 1.0f, 1.0f);  // Bright purple to see if it's working
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
-    // unsigned int VAO, VBO;
-    // glGenVertexArrays(1, &VAO);
-    // glGenBuffers(1, &VBO);
-
-    // glBindVertexArray(VAO);
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // // position attribute
-    // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    // glEnableVertexAttribArray(0);
-    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    // glEnableVertexAttribArray(1);
-
+    /**
+     * 
+     */
     glBindVertexArray(g->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, g->VBO);
 
     // Update buffer with new vertex data
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-
-    if ( ! img->has_texture() ) {
-        img->generate_texture();
-    }
-
-    img->bind_texture();
 
     auto sz = img->get_size();
 
@@ -370,12 +311,22 @@ void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandle
     // Draw the quad as two triangles
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4); 
 
+    // Cleanup
+    // glDeleteVertexArrays(1, &VAO);
+    // glDeleteBuffers(1, &VBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void fbo_to_screen( GLShitFBO *g, Rect *r, ImageHandler *img, Size* win ) {
     /**
      * ===============================
-     *  Bind your offscreen FBO as the source for reading.
+     *  Bind offscreen FBO as the source for reading.
      */
+
+    // convert top-left to bottom-left
     int dest_x0 = r->x;
-    int dest_y0 = win->height - r->y - r->height; // convert top-left to bottom-left
+    int dest_y0 = win->height - r->y - r->height; 
     int dest_x1 = r->x + r->width;
     int dest_y1 = win->height - r->y;
 
@@ -391,9 +342,17 @@ void draw_compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, Rect *r, ImageHandle
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
     glDisable(GL_DEPTH_TEST);
-
-    // Cleanup
-    // glDeleteVertexArrays(1, &VAO);
-    // glDeleteBuffers(1, &VBO);
 }
+
+/**
+|---------------------------------------| 
+| 1 | 2 | . | . | . | . | . | . | . | . |
+|---------------------------------------| 
+| 2 | 4 | . | . | . | . | . | . | . | . |
+|---------------------------------------| 
+| 3 | 6 | . | . | . | . | . | . | . | . |
+|---------------------------------------| 
+| 4 | 8 | . | . | . | . | . | . | . | . |
+|---------------------------------------| 
+*/
 

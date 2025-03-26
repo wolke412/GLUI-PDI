@@ -28,10 +28,12 @@ int main()
     pdi.get_input()->copy_to(pdi.get_output());
 
     auto o = pdi.get_output();
+    
+#if USE_GPU == 1
     // use gpu
-    o->set_is_kernel_shader(true);
-    o->set_kernel( glm::mat3(1.0) );
+    o->set_is_framebuffer(true);
     o->generate_texture();
+#endif
 
     auto win = glui.get_window_size();
     auto r = Rect(*pdi.get_input()->get_size() );
@@ -54,7 +56,7 @@ int main()
     });
     glui.get_hotkeys()->registerhk(GLFW_KEY_LEFT, GLFW_MOD_CONTROL , [&](){
         pdi.m_translate_x -= 5;
-        pdi.transform();
+        pdi.update();
     });
     glui.get_hotkeys()->registerhk(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL , [&](){
         pdi.m_translate_x += 5;
@@ -113,6 +115,10 @@ int main()
          * 
          */
         glui.render();
+
+        // Rect r( 60, 60, 160, 60 );
+        // auto win = glui.get_window_size();
+        // draw_rounded_quad(&r, RGB( .3, .32, .57 ) ,  {20, 20, 40, 40}, &win );
 
         // glFinish();
 

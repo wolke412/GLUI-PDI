@@ -4,32 +4,14 @@
 #include <GLUI/deps/stb_image.h>
 #include <GLUI/deps/stb_image_write.h>
 
-#include <GLUI/rect.hpp>
+/**
+ * When using GPU to calculate shit
+ */
+#include <GLUI/framebuffer.hpp>
 
 #include <string>
 #include <memory>
 #include <filesystem>
-
-struct GLShit {
-    unsigned int VBO;
-    unsigned int VAO;
-};
-
-struct GLShitFBO {
-    GLuint VBO;
-    GLuint VAO;
-    GLuint FBO;
-    GLuint texture;
-    GLuint RBO;
-
-    void read( uint8_t* nout, Size* sz ) {
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, sz->width, sz->height, GL_RGB, GL_UNSIGNED_BYTE, nout);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
-    };
-};
-
 class ImageHandler {
     
 public:
@@ -46,8 +28,7 @@ private:
     unsigned int m_texture = UINT_MAX;
 
     // when using gpu accelaration
-    bool m_is_kernel_shader = false;
-    glm::mat3 m_kernel; 
+    bool m_is_framebuffer = false;
 
 public:
     ImageHandler(const std::string path): m_path(path) {}
@@ -162,13 +143,33 @@ public:
     Size* get_size()  {
         return &m_img_size;
     }
-    
-    void set_is_kernel_shader( bool is_k ) {
-        m_is_kernel_shader = is_k;
+
+    void set_is_framebuffer( bool is ) {
+        m_is_framebuffer = is;
     }
 
-    bool is_kernel_shader() {
-        return m_is_kernel_shader;
+    bool is_framebuffer() {
+        return m_is_framebuffer;
+    }
+
+    bool is_framebuffer_configured() {
+        // maybe there will be more things to compare here
+        if ( ! m_fbo.FBO ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    void assert_fbo() {
+        if ( m_fbo.FBO ) {
+            std::cout << "FBO is set" << std::endl;
+            return;
+        }
+
+        std::cout << "FBO is NOT set" << std::endl;
+
+        m_fbo = init_fbo( get_size() );
     }
 
     void read_generated_fbo() {
@@ -183,16 +184,6 @@ public:
         m_fbo.read( m_data, &m_img_size );
 
         std::cout << "Successfully read."  << std::endl;
-    }
-
-    glm::mat3 get_transformation_kernel() const {
-        return m_kernel;
-    }
-
-    void set_kernel( glm::mat3 k ) {
-        std::cout << "setting ku"  << std::endl;
-        m_kernel = k;
-        std::cout << " ku set"  << std::endl;
     }
 
     /**
@@ -267,6 +258,8 @@ public:
     }
 
 };
+
+
 
 
 

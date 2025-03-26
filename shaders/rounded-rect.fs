@@ -16,11 +16,11 @@ void main()
     // vec4 corners = vec4( 100. );
     // vec2 size    = vec2( 400., 200. );
 
-    // vec2 frag = gl_FragCoord.xy;
+    vec2 frag = gl_FragCoord.xy;
 
     // // Rectangle space normalization
-    // vec2 uv = (frag - offset) / size;
-    vec2 uv = vUV;
+    vec2 uv = (frag - offset) / size;
+    // vec2 uv = vUV;
 
     /**
         IF this shaders EVER come to use, it NEEDS

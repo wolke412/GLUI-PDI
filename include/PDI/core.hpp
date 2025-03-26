@@ -1,6 +1,13 @@
 #ifndef PDI_CORE_H
 #define PDI_CORE_H
 
+/**
+ *  ============================================================ 
+ *    THIS DEFINES WETHER TO USE GPU OR CPU TO CALCULATE IMAGE
+ *  ============================================================ 
+ */
+#define USE_GPU         ( 1 )
+
 #include <GLUI/glui.hpp>
 #include <PDI/math.hpp>
 #include <functional>
@@ -101,15 +108,15 @@ public:
     void mirror();
 
     void transform();
-    // void transform( int t, float angle );
+    void update();
 
 
     // testing functions
     void reset_output();
     void test_pipe() {
-        pipeline.push( TranslateBP{ 1.7, 4.} );
-        pipeline.push( ScaleBP{ 1.7 } );
-        pipeline.push( RotateBP{ 1.7 } );
+        //pipeline.push( TranslateBP{ 1.7, 4.} );
+        //pipeline.push( ScaleBP{ 1.7 } );
+        //pipeline.push( RotateBP{ 1.7 } );
         std::cout << "pipe done" << std::endl;
         pipeline.run( this );
     }

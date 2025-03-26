@@ -3,11 +3,11 @@
 
 #include <immintrin.h>  // For AVX2 intrinsics
 #include <variant>
-                        //
                        
 /**
- *
- * 
+ *  ============================================================ 
+ *    THIS DEFINES WETHER TO USE GPU OR CPU TO CALCULATE IMAGE
+ *  ============================================================ 
  */
 #define USE_GPU         ( 1 )
 
@@ -18,9 +18,9 @@
  * 
  */
 void handle_operation(PDI* pdi, const Stage& op) {
-    std::visit([pdi](const auto& obj) {
-        obj.apply(pdi); // Call the correct apply() method based on the type
-    }, op);
+   // std::visit([pdi](const auto& obj) {
+   //     obj.apply(pdi); // Call the correct apply() method based on the type
+   // }, op);
 }
 /**
  * 
@@ -46,6 +46,11 @@ void align_input_data(uint8_t* stb_image_data, size_t total_pixels, uint8_t*& al
 void PDI::layout() {
     Components::layout(this);
 }
+
+void PDI::update() {
+    transform();
+}
+
 
 /**
  * ============================================================ 
@@ -107,11 +112,16 @@ void PDI::transform() {
 
 
 #if USE_GPU == 1 
+
     //  GPU computing
     // =====================================
-    output->set_is_kernel_shader(true);
-    output->set_is_kernel_shader(true);
-    output->set_kernel( glm::make_mat3x3( kernel.data ) );
+    output->set_is_framebuffer(true);
+    output->assert_fbo();
+
+    set_buffers(&output->m_fbo.VAO, &output->m_fbo.VBO) ;
+
+    compute_tex_quad( &output->m_fbo, glm::make_mat3x3( kernel.data ), output);
+
 #else
     //  CPU computing
     // =====================================
@@ -128,7 +138,7 @@ void PDI::transform() {
      __dflt_kernel_multiplication( &kernel, in, nout, sz, ch);
     
     // this can be known using the same shader inside ImageHandler class; 
-    output->set_is_kernel_shader(true);
+    output->set_is_framebuffer(false);
 
     output->set_binary(nout);
     output->request_texture_reload();
