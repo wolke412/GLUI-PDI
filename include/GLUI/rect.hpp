@@ -59,6 +59,12 @@ struct Rect {
 
         return new_rect;
     }
+
+
+    Size *get_size() {
+        static Size sz( width, height );
+        return &sz;
+    }
 }; 
 
 

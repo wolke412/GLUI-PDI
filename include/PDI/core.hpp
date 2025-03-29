@@ -1,4 +1,4 @@
-#ifndef PDI_CORE_H
+#ifndef PDI_CORE_H 
 #define PDI_CORE_H
 
 /**
@@ -8,55 +8,21 @@
  */
 #define USE_GPU         ( 1 )
 
+#pragma once
+
 #include <GLUI/glui.hpp>
 #include <PDI/math.hpp>
 #include <functional>
 #include <variant>
-// #include <>
+#include <PDI/bppipeline.hpp>
+
+#if USE_GPU 
+#include <GLUI/framebuffer.hpp>
+#include <GLUI/multipassfbo.hpp>
+#endif
 
 class PDI;
 
-/**
- *  =============================================
- *               Funtion Blueprints
- *  =============================================
- */
-struct TranslateBP {
-    float x;
-    float y; 
-    
-    void apply(PDI* p) const { std::cout << "TRANSLATE (" << x << ", " << y << ")" << std::endl; }
-};
-
-struct RotateBP {
-    float angle;
-    void apply(PDI* p) const { std::cout << "ROTATE (" << angle << ")" << std::endl; }
-};
-
-struct ScaleBP {
-    float factor;
-    void apply(PDI *pdi) const { std::cout << "SCALE (" << factor << ")" << std::endl; }
-};
-
-using Stage = std::variant<TranslateBP, RotateBP, ScaleBP>; 
-
-void handle_operation(PDI* pdi, const Stage& op);
-
-class PDIPipeline {
-    private:
-        std::vector<Stage> stages;
-
-    public:
-        PDIPipeline () {}
-
-        uint8_t push( Stage s ) {
-            stages.push_back(s);
-        }
-
-        void run ( PDI* p ) {
-            for ( auto s : stages ) handle_operation(p, s);
-        }
-};
 
 /**
  *  =============================================
@@ -71,29 +37,49 @@ private:
     ImageHandler *output;
 
     PDIPipeline pipeline;
-
 public:
+    Element* render_pipeline;
 
-    // transformations
+    /**
+     * ============================================================
+     *   Transformations
+     * ============================================================
+     */
     float m_scale_x = 1, 
-            m_scale_y = 1;
-    float m_translate_x = 0, m_translate_y = 0;
+          m_scale_y = 1;
+    float m_translate_x = 0, 
+          m_translate_y = 0;
     float m_angle = 0;
     Axis  m_mirror_axis = None;
+    /**
+     * ============================================================
+     */
 
     PDI( GLUI*g ): glui(g) {
         input  = new ImageHandler();
         output = new ImageHandler();
+
+        load_shaders();
     };
 
     GLUI* get_glui() {
         return glui;
     }
 
+    PDIPipeline* get_pipeline() {
+        return &pipeline;
+    }
+
     ImageHandler * get_input()  { return input; }
     ImageHandler * get_output() { return output; }
 
-    void layout();
+    void update_pipeline();
+
+    void push_stage( Stage s );
+    void remove_stage( size_t at );
+    void swap_positions( size_t i, size_t j );
+
+    void load_shaders();
 
     // file menu
     void open_image();
@@ -107,20 +93,20 @@ public:
     void scale();
     void mirror();
 
+
+    mat get_transform_kernel();
+    void reset_transform();
+
     void transform();
     void update();
 
 
     // testing functions
     void reset_output();
-    void test_pipe() {
-        //pipeline.push( TranslateBP{ 1.7, 4.} );
-        //pipeline.push( ScaleBP{ 1.7 } );
-        //pipeline.push( RotateBP{ 1.7 } );
-        std::cout << "pipe done" << std::endl;
-        pipeline.run( this );
-    }
     void test_math();
+
+    void layout_pipeline_components();
+    void layout();
 
     ~PDI() {
         input->free();

@@ -30,5 +30,10 @@ struct GLShitFBO {
 };
 
 GLShitFBO init_fbo( Size *r );
+void free_fbo( GLShitFBO *fbo );
+
+void set_fbo_buffers( GLuint *VAO, GLuint *VBO );
+
+void init_uv_vao_vbo( GLShit *gl );
 
 #endif

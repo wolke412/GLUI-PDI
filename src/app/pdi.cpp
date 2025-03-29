@@ -1,56 +1,91 @@
 #include <PDI/core.hpp>
 #include <PDI/pdi.hpp>
+#include <GLUI/multipassfbo.hpp>
 
 #include <immintrin.h>  // For AVX2 intrinsics
 #include <variant>
                        
-/**
- *  ============================================================ 
- *    THIS DEFINES WETHER TO USE GPU OR CPU TO CALCULATE IMAGE
- *  ============================================================ 
- */
-#define USE_GPU         ( 1 )
 
 
-/**
- * 
- * development
- * 
- */
-void handle_operation(PDI* pdi, const Stage& op) {
-   // std::visit([pdi](const auto& obj) {
-   //     obj.apply(pdi); // Call the correct apply() method based on the type
-   // }, op);
-}
-/**
- * 
- */
 
-void __simd_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz, uint8_t ch );
-void __isimd_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz, uint8_t ch );
-void __dflt_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz, uint8_t ch );
 
-void align_input_data(uint8_t* stb_image_data, size_t total_pixels, uint8_t*& aligned_in) {
-    size_t alignment = 32;  // 32-byte alignment for AVX2
+Shader* shader_brightness = nullptr;
+Shader* shader_threshold  = nullptr;
+Shader* shader_greyscale  = nullptr;
 
-    // Allocate an aligned buffer
-    if (posix_memalign((void**)&aligned_in, alignment, total_pixels * sizeof(uint8_t)) != 0) {
-        std::cerr << "Memory allocation for aligned input failed!" << std::endl;
-        exit(1);
-    }
-    
-    // Copy the data from stb_image buffer into the aligned buffer
-    std::memcpy(aligned_in, stb_image_data, total_pixels * sizeof(uint8_t));
+void PDI::load_shaders() {
+    shader_brightness = new Shader ("shaders/tex_rect.vs", "shaders/filters/brightness-contrast.fs");
+    shader_greyscale  = new Shader ("shaders/tex_rect.vs", "shaders/filters/greyscale.fs");
+    shader_threshold  = new Shader ("shaders/tex_rect.vs", "shaders/filters/threshold.fs");
 }
 
 void PDI::layout() {
     Components::layout(this);
+    Components::generate_pipeline_components(this);
+}
+
+void PDI::layout_pipeline_components() {
+    Components::generate_pipeline_components(this);
 }
 
 void PDI::update() {
     transform();
 }
 
+void PDI::update_pipeline() {
+    layout_pipeline_components(); 
+}
+
+
+
+
+void PDI::reset_transform() {
+   m_scale_x = 1.; 
+   m_scale_y = 1.; 
+   m_translate_y = 0; 
+   m_translate_y = 0; 
+   m_angle = 0.;
+   m_mirror_axis = Axis::None;
+}
+
+mat PDI::get_transform_kernel() {
+
+    float *buf = new float[9]();
+    mat kernel   = identity_matrix(buf);
+    kernel.heap = true;
+
+    // --- MIRROR ---
+    if ( m_mirror_axis != Axis::None ) {
+        float buf_m[9] = {0};
+        mirror_matrix( m_mirror_axis, buf_m );
+        mat mirror = mat3( buf_m, 3 );
+        mat_mul_mut( &mirror, &kernel );
+    }
+
+    // --- SCALE ---
+    if ( m_scale_x != 0 || m_scale_y != 0 ) {
+        float buf_s[9] = {0};
+        scale_matrix( m_scale_x, m_scale_y, buf_s );
+        mat scale = mat3( buf_s, 3 );
+        mat_mul_mut( &scale, &kernel );
+    }
+
+    // --- ROTATE ---
+    if ( m_angle != 0 ) {
+        float buf_r[9] = {0};
+        rotation_matrix( m_angle, buf_r, Axis::Z );
+        mat rot = mat3( buf_r, 3 );
+        mat_mul_mut( &rot, &kernel );
+    }
+
+    // --- TRANSLATE ---
+    if ( m_translate_x != 0 || m_translate_y != 0 ) {
+        float buf_t[9] = {0};
+        translate_matrix( m_translate_x, m_translate_y, buf_t );
+        mat trans = mat3( buf_t, 3 );
+        mat_mul_mut( &trans, &kernel );
+    }
+}
 
 /**
  * ============================================================ 
@@ -109,8 +144,6 @@ void PDI::transform() {
     
     Benchmark::mark();
 
-
-
 #if USE_GPU == 1 
 
     //  GPU computing
@@ -118,9 +151,38 @@ void PDI::transform() {
     output->set_is_framebuffer(true);
     output->assert_fbo();
 
-    set_buffers(&output->m_fbo.VAO, &output->m_fbo.VBO) ;
+    auto win = get_glui()->get_window_size();
 
-    compute_tex_quad( &output->m_fbo, glm::make_mat3x3( kernel.data ), output);
+    compute_tex_quad( &output->m_fbo, glm::make_mat3x3( kernel.data ), output, &win );
+
+    auto winsz = glui->get_window_size();
+    auto imgsz = output->get_size();
+
+    if ( pipeline.size() )  {
+        pipeline.run(this);
+        MultiPassFBO multipassFBO(imgsz->width, imgsz->height);
+        multipassFBO.process(output->m_fbo.texture, *(pipeline.get_shaders()), &winsz, output->m_fbo.FBO);
+        pipeline.flush_shaders();
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, output->m_fbo.FBO);
+    unsigned char pixels[3]; // RGB
+    glReadPixels(imgsz->width / 2, imgsz->height / 2, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+    // std::cout << "FBO Color at Center: ("
+    //             << (int)pixels[0] << ", "
+    //             << (int)pixels[1] << ", "
+    //             << (int)pixels[2] << ")" 
+    //             << std::endl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    GLenum err = glGetError();
+
+    if (err != GL_NO_ERROR)
+    {
+        std::cout << "OpenGL Error after apply(): " << err << std::endl;
+    }
 
 #else
     //  CPU computing
@@ -487,15 +549,8 @@ void __isimd_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz
 }
 
 
-void __exec_rotation_on( float angle, uint8_t* nout ) {
-
-}
-
-
 /**
- * 
  * this is a routine used to calculate 
- * 
  * 
  */
 void PDI::test_math () {

@@ -1,6 +1,9 @@
 #include <GLUI/framebuffer.hpp>
 
 
+void init_uv_vao_vbo( GLShit *gl ){
+}
+
 GLShitFBO init_fbo(  Size *r )  {
     
     // framebuffer configuration
@@ -42,3 +45,32 @@ GLShitFBO init_fbo(  Size *r )  {
 
     return g;
 }
+
+void free_fbo( GLShitFBO *g ) {
+    glDeleteFramebuffers(1, &g->FBO);
+    glDeleteTextures(1, &g->texture);
+    glDeleteRenderbuffers(1, &g->RBO);
+}
+
+
+void set_fbo_buffers( GLuint *VAO, GLuint *VBO ) {
+
+    glGenVertexArrays(1, VAO);
+    glGenBuffers(1, VBO);
+
+    glBindVertexArray(*VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, *VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 4 * 2, nullptr, GL_DYNAMIC_DRAW);
+
+    // position attribute
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+

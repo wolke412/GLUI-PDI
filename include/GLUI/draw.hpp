@@ -4,6 +4,11 @@
 #include <GLUI/rect.hpp>
 #include <GLUI/img_loader.hpp>
 
+
+void printVector(float* vec, int totalSize, int rowSize);
+
+
+
 void initialize_drawing();
 
 void normalize(Rect * rect, Size*window, float* vertices);
@@ -37,7 +42,7 @@ void draw_rounded_quad( Rect *r, RGB c, glm::vec4 corners, Size* window);
  *  ============================================================
  */
 void set_buffers( GLuint *VAO, GLuint *VBO );
-void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img );
+void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img, Size* win );
 void fbo_to_screen( GLShitFBO *g, Rect *r, ImageHandler *img, Size* win );
 
 

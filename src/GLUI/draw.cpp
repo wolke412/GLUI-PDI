@@ -223,7 +223,7 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
      */
     unsigned int VAO, VBO;
 
-    glad_glGenVertexArrays(1, &VAO);
+    glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
     glBindVertexArray(VAO);
@@ -257,7 +257,7 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
 
 }
 
-void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img ) {
+void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img, Size* win ) {
 
     std::cout << "computing tex quad" << std::endl;
 
@@ -278,11 +278,10 @@ void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img ) {
     // bind to framebuffer and draw scene as we normally would to color texture
     glBindFramebuffer(GL_FRAMEBUFFER, g->FBO );
     glViewport( 0, 0, r->width, r->height );
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    // glClearColor(1.0f, 0.0f, 1.0f, 1.0f);  // Bright purple to see if it's working
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
+    // glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
 
     /**
      * 
@@ -316,6 +315,7 @@ void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img ) {
     // glDeleteBuffers(1, &VBO);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport( 0, 0, win->width, win->height );
 }
 
 void fbo_to_screen( GLShitFBO *g, Rect *r, ImageHandler *img, Size* win ) {

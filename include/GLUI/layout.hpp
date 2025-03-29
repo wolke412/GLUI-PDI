@@ -77,7 +77,7 @@ protected:
 
     LayoutMode lm;
 
-    RGB bg_color = RGB(0,0,0);
+    RGB bg_color = BLACK;
 
     std::vector<Element*> children;
 
@@ -124,6 +124,13 @@ public:
         
     std::vector<Element *> get_children() {
         return children;
+    }
+
+    void drop_children() {
+        for (Element* child : children) {
+            // delete child;
+        }
+        children.clear();
     }
 
     void set_fixed(bool t) {
@@ -205,7 +212,6 @@ public:
             auto r = el->rect;
 
             if ( el->rect.width == LAYOUT_FIT_CONTENT || el->rect.height == LAYOUT_FIT_CONTENT ) {
-                // std::cerr << "LAYOUT_FIT_CONTENT CANNOT HAVE NON-FIXED CHILDREN." << std::endl;
                 el->calc_fit_content_self( &r, window);
             }
 
@@ -216,7 +222,7 @@ public:
                 c.max_width = r.width;
             }
 
-            c.total_width += r.width; 
+            c.total_width  += r.width; 
             c.total_height += r.height; 
         }
 
@@ -230,6 +236,7 @@ public:
 
         if (rect.width == LAYOUT_FIT_CONTENT)
         {
+            // TODO: include gaps?
             current->width = c.total_width + padding.left + padding.right;
         }
 
@@ -484,7 +491,8 @@ public:
         }
 
         if ( rect.height == LAYOUT_FIT_CONTENT ) {
-            current->height = c.total_height + padding.top + padding.bottom;
+            auto total_gap = (children.size() - 1) * gap;
+            current->height = c.total_height + padding.top + padding.bottom + total_gap;
         }
     }
 

@@ -5,6 +5,7 @@
 namespace Components {
 
     void layout( PDI * pdi );
-    // void set_layout( PDI* pdi );
+    void generate_pipeline_components( PDI * pdi );
 
+    // void set_layout( PDI* pdi );
 }

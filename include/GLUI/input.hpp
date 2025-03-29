@@ -53,6 +53,10 @@ class Input :  public Focusable {
             // rect.height = DEFAULT_FONT_SIZE + padding.top + padding.bottom;
         }
 
+        void set_value( std::string s ) {
+            m_text = s;
+        }
+
         std::string* get_value() {
             return &m_text;
         }

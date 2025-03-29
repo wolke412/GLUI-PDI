@@ -33,6 +33,13 @@ int main()
     // use gpu
     o->set_is_framebuffer(true);
     o->generate_texture();
+    
+    // o->assert_fbo();
+
+    // set_buffers(&o->m_fbo.VAO, &o->m_fbo.VBO) ;
+
+    // compute_tex_quad( &->m_fbo, glm::make_mat3x3( kernel.data ), output);
+
 #endif
 
     auto win = glui.get_window_size();
@@ -120,7 +127,7 @@ int main()
         // auto win = glui.get_window_size();
         // draw_rounded_quad(&r, RGB( .3, .32, .57 ) ,  {20, 20, 40, 40}, &win );
 
-        // glFinish();
+        glFinish();
 
         Benchmark::capture();
 

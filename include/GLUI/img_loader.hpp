@@ -59,6 +59,11 @@ public:
     }
 
     bool load(  )  {
+
+
+        // gpu stuff y'know
+        // stbi_set_flip_vertically_on_load(true);
+
         unsigned char *data = stbi_load(
             m_path.c_str(), 
             (int *)&m_img_size.width, 
@@ -86,6 +91,8 @@ public:
     
         std::string ext = as.substr(as.find_last_of('.') + 1);
     
+        stbi_flip_vertically_on_write(true);
+
         bool success = false;
     
         if (ext == "png") {
@@ -161,6 +168,12 @@ public:
         return true;
     }
 
+    void reset_fbo() {
+        free_fbo(&m_fbo);
+        m_fbo = init_fbo( get_size() );
+        set_fbo_buffers(&m_fbo.VAO, &m_fbo.VBO) ;
+    }
+
     void assert_fbo() {
         if ( m_fbo.FBO ) {
             std::cout << "FBO is set" << std::endl;
@@ -170,6 +183,7 @@ public:
         std::cout << "FBO is NOT set" << std::endl;
 
         m_fbo = init_fbo( get_size() );
+        set_fbo_buffers(&m_fbo.VAO, &m_fbo.VBO) ;
     }
 
     void read_generated_fbo() {
@@ -258,9 +272,6 @@ public:
     }
 
 };
-
-
-
 
 
 #endif
