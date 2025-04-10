@@ -44,7 +44,7 @@ void main() {
         }
     }
 
-    float sob = sqrt(pow(sobelx, 2) + pow(sobelx, 2));
+    float sob = sqrt(pow(sobelx, 2) + pow(sobely, 2));
 
     if ( sob > threshold ) {
         sob = 1.;

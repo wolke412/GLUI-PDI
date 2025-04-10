@@ -222,30 +222,45 @@ void BP::Filter::apply(PDI *pdi) const {
 Element* BP::Filter::render (PDI *pdi) {
     std::cout << "Rendering Filter"  << std::endl;
     auto p = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-
     p->set_padding(20);
-    p->child(new Text( "Filtro Passa-Baixa" ));
 
-    auto t_lb = new Text("Kernel Size");
-    auto t_in = new TextInput(LAYOUT_FILL);
+    switch ( c ) {
+    case LowPass::Median:
+    {
+        p->child(new Text("Filtro Mediana"));
 
-    t_in->set_value( std::to_string(kernel_size) );
+        auto t_lb = new Text("Kernel Size");
+        auto t_in = new TextInput(LAYOUT_FILL);
+        t_in->set_value(std::to_string(kernel_size));
+        t_in->onchange([&, pdi](Input<std::string> &i)
+                       {
+                    auto v = *i.get_value();
+                    v = v.empty() ? "0" : v;
 
-    t_in->onchange( [&, pdi](Input<std::string>& i){
+                    int b = std::stof( v );
 
-        auto v = *i.get_value();
-        v = v.empty() ? "0" : v;
+                    kernel_size = b;
+                    pdi->update(); });
 
-        int b = std::stof( v );
+        p->child(new Element(Rect(Size(LAYOUT_FILL, 1)), RGBA(.4, .4, .4)));
 
-        kernel_size = b;
-        pdi->update();
-    });
+        p->child(t_lb);
+        p->child(t_in);
+        break;
+    }
 
-    p->child( new Element(Rect( Size(LAYOUT_FILL, 1) ), RGBA(.4,.4,.4)) );
+    case LowPass::Gaussian:
+    {
+        p->child(new Text("Filtro Gaussiano"));
+        break;
+    }
 
-    p->child( t_lb  );
-    p->child( t_in );
+    default:
+    {
+        p->child(new Text("Filtro Não Suportado"));
+    }
+    }
+
 
     return p;
 
