@@ -107,6 +107,7 @@ public:
 
     void layout_pipeline_components();
     void layout();
+    void setup_hotkeys();
 
     ~PDI() {
         input->free();

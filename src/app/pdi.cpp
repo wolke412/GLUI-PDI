@@ -32,12 +32,159 @@ void PDI::layout() {
     Components::generate_pipeline_components(this);
 }
 
+/**
+ * ============================================================
+ *      CONFIGURA OS ATALHOS DA APLICAÇÃO
+ * ============================================================
+ */
+void PDI::setup_hotkeys() {
+
+    auto glui = get_glui();
+    auto hk   = glui->get_hotkeys(); // get hotkeys handler
+    
+    // INTERNALS BINDS
+    // ----------------------------------------
+    // Binds relacionadas ao funcionamento do sistema
+    // ============================================================ 
+
+    // F5 -> Reload shaders
+    hk->registerhk(GLFW_KEY_F5, 0, [&](){
+        load_shaders();
+    });
+
+    // FILE BINDS
+    // ============================================================ 
+
+    // CTRL + S   -> Salva a Imagem
+    hk->registerhk(GLFW_KEY_S, GLFW_MOD_CONTROL , [&](){
+
+        std::cout << "Getting bytes" << std::endl;
+
+        auto o = get_output(); 
+
+        o->read_generated_fbo();
+    
+        std::cout << "After read"  << std::endl;
+
+        auto bin = o->get_binary();
+
+        o->save( "static/save.jpg" );
+    });
+
+
+    //  BINDS DE TRANSFORMAÇÃO 
+    // ============================================================ 
+        
+    // CTRL + 0  -> RESETA TRANSFORMAÇÕES
+    hk->registerhk('0', GLFW_MOD_CONTROL, [&](){
+        reset_transform();
+        update();
+    });
+
+    // CTRL + R         -> Rotação sentido horário 
+    hk->registerhk('R', GLFW_MOD_CONTROL, [&](){
+        m_angle -= 5;
+        update();
+    });
+
+    // CTRL + SHIFT + R -> Rotação sentido anti-horário 
+    hk->registerhk('R', GLFW_MOD_SHIFT | GLFW_MOD_CONTROL, [&](){
+        m_angle += 5;
+        update();
+    });
+
+    /**
+     * CTRL + (setinhas)  -> Translação. Step = 5 pixels
+     */
+    hk->registerhk(GLFW_KEY_UP, GLFW_MOD_CONTROL, [&](){
+        m_translate_y += 5;
+        update();
+    });
+    hk->registerhk(GLFW_KEY_DOWN, GLFW_MOD_CONTROL , [&](){
+        m_translate_y -= 5;
+        update();
+    });
+    hk->registerhk(GLFW_KEY_LEFT, GLFW_MOD_CONTROL , [&](){
+        m_translate_x -= 5;
+        update();
+    });
+    hk->registerhk(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL , [&](){
+        m_translate_x += 5;
+        update();
+    });
+
+    /**
+     * CTRL + M  -> Espelhamento: X -> Y -> X e Y -> Nenhunm.
+     */
+    hk->registerhk(GLFW_KEY_M, GLFW_MOD_CONTROL , [&](){
+        m_mirror_axis = (Axis) ( ( (int)m_mirror_axis + 1 ) % 4);
+        update();
+
+    });
+
+    /**
+     * CTRL + '='  -> Zoom In
+     */
+    hk->registerhk('=', GLFW_MOD_CONTROL , [&](){
+        m_scale_x += 0.05; 
+        m_scale_y += 0.05; 
+
+        update();
+    });
+    /**
+     * CTRL + '='  -> Zoom Out
+     */
+    hk->registerhk('-', GLFW_MOD_CONTROL , [&](){
+        m_scale_x -= 0.05; 
+        m_scale_y -= 0.05; 
+
+        if ( m_scale_x <= 0.01 ) {
+            m_scale_x = 0.01;
+            m_scale_y = 0.01;
+        }
+
+        update();
+    });
+}
+
 void PDI::layout_pipeline_components() {
     Components::generate_pipeline_components(this);
 }
 
 void PDI::update() {
+
+    /**
+     * TODO: Make transform its own "PipelineStage"
+     */
     transform();
+
+    /**
+     * Executar o restante das operações do PIPELINE
+     */
+#if USE_GPU
+    auto winsz = glui->get_window_size();
+    auto imgsz = output->get_size();
+
+    if ( pipeline.size() || pipeline.active_size() )  {
+        pipeline.run(this);
+
+        MultiPassFBO multipassFBO(imgsz->width, imgsz->height);
+        multipassFBO.process(output->m_fbo.texture, *(pipeline.get_shaders()), &winsz, output->m_fbo.FBO);
+
+        // limpa a file execução de shaders gerados. Na próxima iteração ela é gerada novamente...
+        // Pois significa que houve uma alteração.
+        pipeline.flush_shaders();
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    GLenum err = glGetError();
+
+    if (err != GL_NO_ERROR)
+    {
+        std::cout << "OpenGL Error after apply(): " << err << std::endl;
+    }
+#endif
 }
 
 void PDI::update_pipeline() {
@@ -125,35 +272,6 @@ void PDI::transform() {
 
     compute_tex_quad( &output->m_fbo, glm::make_mat3x3( kernel.data ), output, &win );
 
-    auto winsz = glui->get_window_size();
-    auto imgsz = output->get_size();
-
-    if ( pipeline.size() || pipeline.active_size() )  {
-        pipeline.run(this);
-        MultiPassFBO multipassFBO(imgsz->width, imgsz->height);
-        multipassFBO.process(output->m_fbo.texture, *(pipeline.get_shaders()), &winsz, output->m_fbo.FBO);
-        pipeline.flush_shaders();
-    }
-
-    // glBindFramebuffer(GL_FRAMEBUFFER, output->m_fbo.FBO);
-
-    // unsigned char pixels[3]; // RGB
-    // glReadPixels(imgsz->width / 2, imgsz->height / 2, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-
-    // std::cout << "FBO Color at Center: ("
-    //             << (int)pixels[0] << ", "
-    //             << (int)pixels[1] << ", "
-    //             << (int)pixels[2] << ")" 
-    //             << std::endl;
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    GLenum err = glGetError();
-
-    if (err != GL_NO_ERROR)
-    {
-        std::cout << "OpenGL Error after apply(): " << err << std::endl;
-    }
 
 #else
     //  CPU computing

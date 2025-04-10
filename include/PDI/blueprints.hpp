@@ -97,7 +97,14 @@ namespace BP {
      * 
      * 
      */
-    enum EdgeDetection {
+    enum EdgeDetection {};
+
+    class Sobel : public Fn {
+        float t;
+    public:
+        Sobel( float t ): t(t) {}
+        virtual void apply(PDI *pdi) const;
+        virtual Element* render(PDI *pdi);
     };
 
     class Sobel : public Fn {

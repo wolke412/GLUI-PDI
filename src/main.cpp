@@ -21,12 +21,11 @@ int main()
     PDI pdi(&glui);
 
     pdi.layout();
-
+    pdi.setup_hotkeys();
 
     glui.calc_elements();
 
     pdi.get_input()->set_path("static/noisy-lena.jpeg");
-    // pdi.get_input()->set_path("static/512.jpg");
     pdi.get_input()->load();
     pdi.get_input()->copy_to(pdi.get_output());
 
@@ -35,88 +34,8 @@ int main()
     pdi.update(); 
 
 #if USE_GPU == 1
-    // use gpu
-    o->set_is_framebuffer(true);
-    o->generate_texture();
+    pdi.get_output()->set_is_framebuffer(true);
 #endif
-
-    auto win = glui.get_window_size();
-    auto r = Rect(*pdi.get_input()->get_size() );
-
-    // F5 -> Reload shaders
-    glui.get_hotkeys()->registerhk(GLFW_KEY_F5, 0, [&](){
-        load_shaders();
-    });
-
-    glui.get_hotkeys()->registerhk('0', GLFW_MOD_CONTROL, [&](){
-        pdi.reset_transform();
-        pdi.transform();
-    });
-
-    glui.get_hotkeys()->registerhk('R', GLFW_MOD_SHIFT | GLFW_MOD_CONTROL, [&](){
-        pdi.m_angle -= 5;
-        pdi.transform();
-    });
-    glui.get_hotkeys()->registerhk('R', GLFW_MOD_CONTROL, [&](){
-        pdi.m_angle += 5;
-        pdi.transform();
-    });
-    glui.get_hotkeys()->registerhk(GLFW_KEY_UP, GLFW_MOD_CONTROL, [&](){
-        pdi.m_translate_y += 5;
-        pdi.transform();
-    });
-    glui.get_hotkeys()->registerhk(GLFW_KEY_DOWN, GLFW_MOD_CONTROL , [&](){
-        pdi.m_translate_y -= 5;
-        pdi.transform();
-    });
-    glui.get_hotkeys()->registerhk(GLFW_KEY_LEFT, GLFW_MOD_CONTROL , [&](){
-        pdi.m_translate_x -= 5;
-        pdi.update();
-    });
-    glui.get_hotkeys()->registerhk(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL , [&](){
-        pdi.m_translate_x += 5;
-        pdi.transform();
-    });
-    glui.get_hotkeys()->registerhk(GLFW_KEY_M, GLFW_MOD_CONTROL , [&](){
-        pdi.m_mirror_axis = (Axis) ( ( (int)pdi.m_mirror_axis + 1 ) % 4);
-        pdi.transform();
-
-    });
-    glui.get_hotkeys()->registerhk('=', GLFW_MOD_CONTROL , [&](){
-        pdi.m_scale_x += 0.05; 
-        pdi.m_scale_y += 0.05; 
-
-        pdi.transform();
-    });
-    glui.get_hotkeys()->registerhk('-', GLFW_MOD_CONTROL , [&](){
-        pdi.m_scale_x -= 0.05; 
-        pdi.m_scale_y -= 0.05; 
-
-        if ( pdi.m_scale_x <= 0.01 ) {
-            pdi.m_scale_x = 0.01;
-            pdi.m_scale_y = 0.01;
-        }
-
-        pdi.transform();
-    });
-    
-
-    // FILE BINDS
-    // ============================================================ 
-    glui.get_hotkeys()->registerhk(GLFW_KEY_S, GLFW_MOD_CONTROL , [&](){
-
-        std::cout << "Getting bytes" << std::endl;
-
-        auto o = pdi.get_output(); 
-
-        o->read_generated_fbo();
-    
-        std::cout << "After read"  << std::endl;
-
-        auto bin = o->get_binary();
-
-        o->save( "static/save.jpg" );
-    });
 
     Benchmark::monitor_gpu();
 
