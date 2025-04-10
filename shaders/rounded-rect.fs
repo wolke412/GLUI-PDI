@@ -4,7 +4,7 @@ in vec2 vUV;
 out vec4 FragColor;
 
 uniform vec2 resolution;  
-uniform vec3 buttonColor;
+uniform vec4 buttonColor;
 
 uniform vec4 corners;  
 uniform vec2 size;  
@@ -75,7 +75,7 @@ void main()
     }
 
     else {
-        FragColor = vec4(1.);
+        FragColor = buttonColor;
     }
 
     return;

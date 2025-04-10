@@ -6,13 +6,14 @@
 
 #include <GLUI/benchmark.hpp>
 
+#include <GLUI/components/Modal.hpp>
 
 int main()
 {
 
     GLUI& glui = GLUI::create("Processamento Digital de Imagens");
 
-    if ( ! glui.begin( Theme::BG_SHADE_100 ) ) {
+    if ( ! glui.begin( (Theme::BG_SHADE_100).to_rgb() ) ) {
         std::cerr << "Erro incializando GLUI." << std::endl;
         return -1;
     }
@@ -21,29 +22,36 @@ int main()
 
     pdi.layout();
 
+
     glui.calc_elements();
 
-    pdi.get_input()->set_path("static/512.jpg");
+    pdi.get_input()->set_path("static/noisy-lena.jpeg");
+    // pdi.get_input()->set_path("static/512.jpg");
     pdi.get_input()->load();
     pdi.get_input()->copy_to(pdi.get_output());
 
     auto o = pdi.get_output();
-    
+
+    pdi.update(); 
+
 #if USE_GPU == 1
     // use gpu
     o->set_is_framebuffer(true);
     o->generate_texture();
-    
-    // o->assert_fbo();
-
-    // set_buffers(&o->m_fbo.VAO, &o->m_fbo.VBO) ;
-
-    // compute_tex_quad( &->m_fbo, glm::make_mat3x3( kernel.data ), output);
-
 #endif
 
     auto win = glui.get_window_size();
     auto r = Rect(*pdi.get_input()->get_size() );
+
+    // F5 -> Reload shaders
+    glui.get_hotkeys()->registerhk(GLFW_KEY_F5, 0, [&](){
+        load_shaders();
+    });
+
+    glui.get_hotkeys()->registerhk('0', GLFW_MOD_CONTROL, [&](){
+        pdi.reset_transform();
+        pdi.transform();
+    });
 
     glui.get_hotkeys()->registerhk('R', GLFW_MOD_SHIFT | GLFW_MOD_CONTROL, [&](){
         pdi.m_angle -= 5;
@@ -123,10 +131,7 @@ int main()
          */
         glui.render();
 
-        // Rect r( 60, 60, 160, 60 );
-        // auto win = glui.get_window_size();
-        // draw_rounded_quad(&r, RGB( .3, .32, .57 ) ,  {20, 20, 40, 40}, &win );
-
+        // isso aqui é para propositos de teste apenas.
         glFinish();
 
         Benchmark::capture();

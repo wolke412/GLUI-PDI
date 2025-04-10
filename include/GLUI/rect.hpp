@@ -60,12 +60,27 @@ struct Rect {
         return new_rect;
     }
 
-
     Size *get_size() {
         static Size sz( width, height );
         return &sz;
     }
+
+    void debug(const char* label = nullptr) const {
+        if (label)
+            std::cout << label << " ";
+        std::cout << "(x=" << x << ", y=" << y 
+                  << ", w=" << width << ", h=" << height << ")\n";
+    }
 }; 
 
+/**
+ * 
+ */
+struct Circle {
+    __RECT_TYPE__ x; 
+    __RECT_TYPE__ y;
+    
+    __RECT_TYPE__ radius;
+};
 
 #endif

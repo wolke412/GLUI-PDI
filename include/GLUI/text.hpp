@@ -44,7 +44,7 @@ std::string encode_utf8(uint32_t codepoint);
 void TextLoadFont(const std::string& fontPath);
 
 void InitTextRendering();
-void RenderText(std::string text, Coord at, float scale, RGB color, Size *window);
+void RenderText(std::string text, Coord at, float scale, RGBA color, Size *window);
 
 int TextCalcRenderWidth( const std::string t, float scale);
 int TextCalcRenderHeightSingleLine( const std::string t, float scale);
@@ -53,34 +53,46 @@ class Text : public Element {
 
     private :
         std::string m_Text; 
-        float m_Scale        = 1;
-        uint8_t m_Font_size = DEFAULT_FONT_SIZE;
+        float m_Scale         = 1;
+        uint8_t m_Font_size   = DEFAULT_FONT_SIZE;
         uint8_t m_line_height = DEFAULT_FONT_SIZE;
-        RGB m_Fg_color      = WHITE;
 
 
     public:
         Text(const std::string text): m_Text(text), Element() {
-            rect.width  = LAYOUT_FIT_CONTENT;
-            rect.height = m_Font_size;
+            rect.height = Layout::FitContent;
+            rect.width  = Layout::FitContent;
+
+            m_line_height = m_Font_size;
         }
 
-        Text(const std::string text, RGB fg): m_Text(text), m_Fg_color(fg), Element() {}
+        Text(const std::string text, RGBA fg): m_Text(text), Element() {
+            set_foreground_color(fg);
+
+            rect.height = Layout::FitContent;
+            rect.width  = Layout::FitContent;
+
+            m_line_height = m_Font_size;
+        }
 
         void draw( Size *window_size ) override {
+            if ( hidden ) {
+                return;
+            }
+
             auto tr = get_true_rect();
 
             // draw_quad(*tr, RGB(.5, .2, .2), window_size);
-            RenderText(m_Text, Coord(tr->x, tr->y), m_Scale, m_Fg_color, window_size);
+            RenderText(m_Text, Coord(tr->x, tr->y), m_Scale, fg_color, window_size);
         }
 
         void calc_fit_content_self(Rect *current, Size *window ) override
         {
+            current->width = TextCalcRenderWidth( m_Text, m_Scale );
             current->height = m_line_height;
             // current->height = TextCalcRenderHeightSingleLine( m_Text, m_Scale );
-            current->width = TextCalcRenderWidth( m_Text, m_Scale );
 
-            // std::cout << "Finished self calc w:" << current->width << std::endl;
+            // std::cout << "Getting text fit content: " << std::to_string(current->width) << "x" << std::to_string(current->height) << std::endl;
         }
     
         std::string get_text() const {
@@ -91,12 +103,8 @@ class Text : public Element {
             m_Text = t;
         }
 
-        void set_foreground_color(RGB color) {
-            m_Fg_color= color;
-        }
-
         void set_font_size( uint8_t fs ) {
-            m_Font_size = fs;
+            m_Font_size   = fs;
             m_line_height = fs;
             m_Scale = (float)fs / (float)DEFAULT_FONT_SIZE;
         }

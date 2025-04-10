@@ -28,7 +28,7 @@ class Image : public Element {
             
             Text *t = new Text( "Selecione uma imagem" );
             t->set_font_size(16);
-            t->set_foreground_color(RGB(.12, .17, .24));
+            t->set_foreground_color(RGBA(.12, .17, .24));
 
             child(t);
         }
@@ -52,7 +52,7 @@ class Image : public Element {
                 return;
             } 
 
-            draw_quad(tr, RGB(.1, .1, .1), window);
+            draw_quad(tr, RGBA(.1, .1, .1), window);
             draw_children(tr, window);
         }    
         // Text string stored in the input

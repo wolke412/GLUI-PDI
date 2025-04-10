@@ -4,6 +4,17 @@
 void pdi_make_file_dropdown(PDI *pdi, Element *nav, Element *fcont);
 void pdi_make_transform_dropdown(PDI *pdi, Element *nav, Element *fcont);
 void pdi_make_segmentation_dropdown(PDI *pdi, Element *nav, Element *fcont);
+void pdi_make_filters_dropdown(PDI *pdi, Element *nav, Element *fcont);
+
+/**
+ *   nice cock 
+ */
+Modal* pdi_make_open_file_modal( PDI* pdi );
+
+/**
+ *  Ai
+ */
+Element* make_pipeline_stage( PDI *pdi, Stage s, int index );
 
 /**
  *  ========================================
@@ -26,12 +37,53 @@ void Components::layout( PDI* pdi ) {
     Row *navbar  = new Row(Rect(0, 0, LAYOUT_FILL, 80), 20, Theme::BG_SHADE_300);
     Row *body    = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL), 20, Theme::BG_SHADE_100);
 
+
+    /**
+     * 
+     * ============================================================
+     *  O CÓDIGO COMETADO ABAIXO É USADO PARA DEBUGAR OS ELEMENTOS
+     *  VISUAIS DA INTERFACE.
+     * ============================================================
+     * 
+     */
+    // Row* ROW_1 = new Row( Size( FitContent, FitContent), 100, TRANSPARENT );
+    // Pile* PILE_1 = new Pile( Size( FitContent, FitContent), 20, TRANSPARENT );
+
+    // ROW_1->set_border( Border(2, RGBA(1,0,0)));
+    // PILE_1->set_border(Border(2, RGBA(1,0,0)));
+
+    // ROW_1->set_padding(Padding(2));
+    // PILE_1->set_padding(Padding(2));
+
+    // Element* BOX_R = new Element( Size( 100, 100 ), RGBA(1,0,0) );
+    // Element* BOX_Y = new Element( Size( 100,  40 ), RGBA(1,1,0) );
+    // Element* BOX_G = new Element( Size( 100,  80 ), RGBA(0,1,0) );
+
+    // ROW_1->child( BOX_R );
+    // ROW_1->child( PILE_1 );
+    // PILE_1->child( BOX_Y );
+    // PILE_1->child( new Text( "Ola meus amigos 1", RGBA( 1, 0 ,1 ) ) );
+    // PILE_1->child( BOX_G );
+
+    // PILE_1->child( new Text( "Ola meus amigos 2", WHITE ) );
+
+    // PILE_1->child( new Button( "Botão 1", RGBA( 0, 1, 1 ) ) );
+    // PILE_1->child( new Button( "Botão 2", RGBA( 0.5, .5, 1 ) ) );
+
+    // ROW_1->child( new Text( "Texto qualquer", RGBA( 1, 0 ,1 ) ) );
+    // ROW_1->child( new Button( "Botão 4", RGBA( .8, .2, .5 ) ) );
+
+    // root->child( ROW_1 );
+
+    // return;
+
     /**
      * 
      */
     pdi_make_file_dropdown( pdi, navbar, root );
     pdi_make_transform_dropdown( pdi, navbar, root );
     pdi_make_segmentation_dropdown( pdi, navbar, root );
+    pdi_make_filters_dropdown( pdi, navbar, root );
 
 
     root->child(navbar);
@@ -42,13 +94,15 @@ void Components::layout( PDI* pdi ) {
     navbar->set_padding(Padding(20));
     body->set_padding(Padding(20));
     
-    Input *input_img_path = new Input( 320 );    
-    input_img_path->set_background_color(RGB(.3,.35,.4));
+    TextInput *input_img_path = new TextInput( 320 );    
+
+    input_img_path->set_background_color(Theme::BG_SHADE_100);
+    input_img_path->set_border(Border(1, Theme::BG_SHADE_400));
 
     auto img_h     = pdi->get_input();
     auto img_h_out = pdi->get_output();
 
-    input_img_path->onchange([=](Input& i ) {
+    input_img_path->onchange([=]( Input<std::string>& i ) {
         auto v = i.get_value();
 
         if ( img_h->is_valid_image_path(v) ) {
@@ -72,21 +126,31 @@ void Components::layout( PDI* pdi ) {
     auto im1 = new Image(img_h,     Rect(Size(512, 512)));
     auto im2 = new Image(img_h_out, Rect(Size(512, 512)));
 
-    Pile *in_img_pile  = new Pile( Rect(0,0, LAYOUT_FILL, LAYOUT_FILL), 20, Theme::BG_SHADE_100 );
-    Pile *out_img_pile = new Pile( Rect(0,0, LAYOUT_FILL, LAYOUT_FILL), 20, Theme::BG_SHADE_100 );
+    Pile *in_img_pile  = new Pile( Rect(0,0, Layout::FitContent, Layout::FitContent), Spacing::Medium, Theme::BG_SHADE_100 );
+    Pile *out_img_pile = new Pile( Rect(0,0, Layout::FitContent, Layout::FitContent), Spacing::Medium, Theme::BG_SHADE_100 );
 
-    in_img_pile->child(input_img_path);
+    in_img_pile->set_border(Border( 1, Opacity(WHITE, .2) ));
+    out_img_pile->set_border(Border( 1, Opacity(WHITE, .2) ));
+    in_img_pile->set_padding(  Padding( Spacing::Medium ) );
+    out_img_pile->set_padding( Padding( Spacing::Medium ) );
+
+    Text *head_in  = new Text( "Entrada" );
+    Text *head_out = new Text( "Saída" );
+    head_in->set_foreground_color( Opacity( WHITE, .6 ) );
+    head_out->set_foreground_color( Opacity( WHITE, .6 ) );
+
+    // in_img_pile->child(input_img_path);
+    in_img_pile->child(head_in);
     in_img_pile->child(im1);
 
+    out_img_pile->child(head_out);
     out_img_pile->child(im2);
      
     Row  *images  = new Row(  Size ( LAYOUT_FILL, LAYOUT_FILL ), 20,  Theme::BG_SHADE_100 );
-    Pile *sidebar = new Pile( Size (400, LAYOUT_FILL ), 20, Theme::BG_SHADE_200 );
+    Pile *sidebar = new Pile( Size ( 400, LAYOUT_FILL ), 20, Theme::BG_SHADE_200 );
 
 
-    /**
-     * TODO: make this less dumb
-     */
+    // TODO: make this less dumb
     pdi->render_pipeline = sidebar;
  
     images->set_padding(  Padding(20) );
@@ -100,12 +164,8 @@ void Components::layout( PDI* pdi ) {
     body->child( sidebar );
 
     std::cout << "LAYOUT ::DONE" << std::endl; 
-}
 
-/**
- *  Ai
- */
-Element* make_pipeline_stage( PDI *pdi, Stage s );
+}
 
 void Components::generate_pipeline_components(PDI *pdi) {
     auto stages   = pdi->get_pipeline()->get_stages();
@@ -113,20 +173,50 @@ void Components::generate_pipeline_components(PDI *pdi) {
 
     renderat->drop_children();
 
+    int i = 0;
     for ( auto s : stages ) {
-        renderat->child( make_pipeline_stage( pdi, s ) );
+        renderat->child( make_pipeline_stage( pdi, s, i++) );
     }
 }
 
-Element* make_pipeline_stage( PDI *pdi, Stage s ) {
-    auto p = new Pile( Rect( 0,0,LAYOUT_FILL,LAYOUT_FIT_CONTENT ), 20, WHITE );
+Element* make_pipeline_stage( PDI *pdi, Stage s, int index ) {
 
+    auto p = new Pile( Rect( 0, 0, LAYOUT_FILL,LAYOUT_FIT_CONTENT ), 20, Theme::BG_SHADE_300 );
     p->set_padding( 6 );
+
+    auto opt_row = new Row( Rect( Size(LAYOUT_FILL, LAYOUT_FIT_CONTENT ) ), 10, TRANSPARENT);
+
+    auto xb = new Button("x", RGBA(.8, .25, .12)); 
+    auto en = new Checkbox( 20 ); 
+
+    en->set_background_color(TRANSPARENT);
+    en->set_border( Border(1, Theme::BG_SHADE_400) );
+
+    en->set_value( s->is_enabled() );
+
+    en->onchange( [pdi, s](Input<bool>& t) {
+        std::cout << "Stage input: " <<  std::to_string(*t.get_value()) << std::endl;
+
+        if ( *t.get_value() ) {
+            s->enable();
+        } else {
+            s->disable();
+        }
+
+        pdi->update_pipeline();
+    });
+
+    xb->onclick( [pdi, index](Button &b) {
+        pdi->get_pipeline()->remove(index);
+        pdi->update_pipeline();
+    });
+
+    xb->set_padding( Padding(6, 12 ) );
+    opt_row->child(en);
+    opt_row->child(xb);
+
+    p->child( opt_row );
     p->child( s->render(pdi) );
-    // p->child( new Button( "Um botão aqui", Theme::PRIMARY ) );
-    auto xb = new Button("x", RGB(.8, .25, .12)); 
-    xb->set_padding( 6 );
-    xb->child(xb);
 
     return p;
 }
@@ -140,6 +230,7 @@ void make_dropdown( GLUI* glui, Element* app_btn, Element* app_modal, const std:
 
     Button *btn_file = new Button(name, Theme::BG_SHADE_300);
 
+    btn_file->set_border(Border( 1, Theme::BG_SHADE_500 ));
     btn_file->set_padding(Padding(10, 20));
     btn_file->get_text()->set_font_size( 18 );
 
@@ -189,10 +280,15 @@ void make_dropdown( GLUI* glui, Element* app_btn, Element* app_modal, const std:
 
 void pdi_make_file_dropdown(PDI *pdi, Element *nav, Element *fcont){
 
+    auto modal_open = pdi_make_open_file_modal( pdi );
+
+    pdi->get_glui()->push_fixed( modal_open );
+
     DropdownOption d[] = {
 
         { "Abrir imagem", 
             [=](Focusable& f){
+                modal_open->show();
                 std::cout << "Button 1" << std::endl;
             } 
         },
@@ -291,3 +387,162 @@ void pdi_make_segmentation_dropdown(PDI *pdi, Element *nav, Element *fcont){
     make_dropdown(pdi->get_glui(), nav, fcont, "Segmentações", d, sizeof( d ) / sizeof(DropdownOption) );
 }
 
+void pdi_make_filters_dropdown(PDI *pdi, Element *nav, Element *fcont){
+
+    DropdownOption d[] = {
+        { "Mediana", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Filter(BP::LowPass::Median, 3) );
+                pdi->update_pipeline();
+            } 
+        },
+        { "Gaussiano", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Filter(BP::LowPass::Gaussian, 7) );
+                pdi->update_pipeline();
+            } 
+        },
+
+        { "Sobel", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Sobel( .7 ) );
+                pdi->update_pipeline();
+            } 
+        },
+    };
+
+    make_dropdown(pdi->get_glui(), nav, fcont, "Filtros", d, sizeof( d ) / sizeof(DropdownOption) );
+}
+
+/**
+ *  ============================================================
+ *      RANDOM SHIT
+ *  ============================================================
+ * 
+ */
+Modal* pdi_make_open_file_modal( PDI* pdi ) {
+
+    std::cout << "Building modal" << std::endl;
+    Pile* open_file_form = new Pile( Size(400, Layout::FitContent ), Spacing::Medium, Opacity(WHITE, .0) );
+
+    TextInput *input_img_path = new TextInput( Fill );    
+    Text *error_message       = new Text( "Erro desconhecido", Theme::ERROR );
+    Text *success_message     = new Text( "Sucesso!", Theme::SUCCESS );
+    Button *btn_open_image    = new Button( "Abrir imagem", DARKGREY );    
+
+
+    // input style
+    input_img_path->set_background_color(Theme::BG_SHADE_100);
+    input_img_path->set_border(Border(1, Theme::BG_SHADE_400));
+    input_img_path->set_padding( Padding( Spacing::SmallM, Spacing::MediumL ) );
+
+    // button style
+    btn_open_image->set_hover_background_color(Theme::SECONDARY);
+    btn_open_image->set_border(  Border( 2, Opacity(WHITE, .2) ) );
+    btn_open_image->set_padding( Padding( Spacing::SmallM, Spacing::MediumL ) );
+
+    // messages styles
+    error_message->set_font_size( FontSize::S_700 );
+    success_message->set_font_size( FontSize::S_700 );
+
+    error_message->hide();
+    success_message->hide();
+
+    std::cout << "Settings components modal" << std::endl;
+
+    // set them children
+    open_file_form->child( input_img_path );
+    open_file_form->child( success_message );
+    open_file_form->child( error_message );
+    open_file_form->child( btn_open_image );
+
+    Modal* open_file     = new Modal( pdi->get_glui(), "Carregar imagem", open_file_form);
+    open_file->set_modal_background( Theme::BG_SHADE_400 );
+
+    auto img_i     = pdi->get_input();
+    auto img_o     = pdi->get_output();
+
+    input_img_path->set_value( img_i->get_path() );
+
+    std::cout << "Setting callbacks" << std::endl;
+
+    input_img_path->onfocus([=]( Focusable& i ) {
+        input_img_path->set_border(Border(1, Theme::BG_SHADE_400));
+    });
+
+    // TODO: implement "disabled" for buttons and other components wich may require it
+    input_img_path->onchange([=]( Input<std::string>& i ) {
+        auto v = i.get_value();
+        bool is_valid = img_i->is_valid_image_path(v);
+
+        if ( is_valid ) {
+            auto size = img_o->get_size();
+            success_message->set_text( "Imagem válida" );
+            input_img_path->set_border(Border( 1, Theme::SUCCESS));
+            
+            btn_open_image->set_background_color( Theme::PRIMARY );
+        }
+
+        else {
+            error_message->set_text("Caminho inválido.");
+            input_img_path->set_border(Border( 1, Theme::ERROR ));
+
+            btn_open_image->set_background_color( DARKGREY );
+        }
+
+        success_message->toggle_hidden( ! is_valid );
+        error_message->toggle_hidden(     is_valid );
+
+    });
+
+    btn_open_image->onclick([=]( Button& b ) {
+        auto v = input_img_path->get_value();
+
+        bool is_valid = img_i->is_valid_image_path(v);
+
+        std::cout << "Input: " << v << std::endl;
+
+        if ( is_valid ) {
+
+            img_i->set_path( *v );
+            img_i->load();
+
+            img_i->copy_to(img_o);
+            img_o->request_texture_reload();
+            // img_o->generate_texture();
+
+            #if USE_GPU == 1
+                img_o->reset_fbo();
+            #endif
+
+            pdi->reset_transform();
+            pdi->update();
+
+            /**
+             * top 10 mensagens
+             */
+            auto size = img_o->get_size();
+            success_message->set_text( "Imagem carregada: (" + std::to_string( size->width ) + "x" + std::to_string(size->height) + ")");
+            input_img_path->set_border(Border( 1, Theme::SUCCESS));
+        }
+
+        else {
+            error_message->set_text("Caminho inválido.");
+            input_img_path->set_border(Border( 1, Theme::ERROR ));
+        }
+
+        success_message->toggle_hidden( !is_valid );
+        error_message->toggle_hidden( is_valid );
+    });
+ 
+    
+    // open_file->onbeforedraw( [=](Element *e) {
+    //     auto s    = pdi->get_glui()->get_window_size();
+    //     auto root = pdi->get_glui()->get_root();
+
+    //     std::cout << "Calculating modal" << std::endl;
+    //     open_file->calc_children_true_rects( root->get_true_rect(), &s);
+    // } );
+
+    return open_file;
+}

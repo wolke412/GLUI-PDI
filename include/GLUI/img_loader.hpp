@@ -55,7 +55,11 @@ public:
             m_data = nullptr;
         }
 
-        request_texture_reload();
+        // request_texture_reload();
+    }
+
+    std::string get_path() const {
+        return m_path;
     }
 
     bool load(  )  {
@@ -81,6 +85,10 @@ public:
                   << m_img_size.width
                   << std::endl;
 
+
+        // i guess it makes more sense to be here. 
+        request_texture_reload();
+
         return true;
     }
 
@@ -102,7 +110,8 @@ public:
             success = stbi_write_jpg(as.c_str(), m_img_size.width, m_img_size.height, m_ch_count, m_data, 100); // 100 = max quality
         } 
         else {
-            return false; // Unsupported format
+            // atensao: format nao suportado
+            return false; 
         }
     
         return success;

@@ -29,9 +29,12 @@ public:
 
     inline GLuint getFinalTexture() const { return ping_pong_tex[readIndex]; }
 
-private:
+    /**
+     *  ------------------------------------------------------------
+     */
     int width, height;
 
+private:
     GLShit glshit;
 
     GLuint ping_pong_fbos[2], ping_pong_tex[2];

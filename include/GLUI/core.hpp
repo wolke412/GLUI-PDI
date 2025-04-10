@@ -83,7 +83,7 @@ private:
   Hotkeys m_hotkeys;
 
 
-  RGB m_clear_color = BLACK;
+  RGB m_clear_color = RGB(0, 0, 0);
 
   Element *shadow_root;
   Element *root;
@@ -427,6 +427,14 @@ public:
       }
     }
 
+    if ( e->has_capability(CClickable) ) {
+      Clickable *c = dynamic_cast<Clickable *>(e);
+      if (c)
+      {
+        c->click();
+      }
+    }
+
     Button *b = dynamic_cast<Button *>(e);
 
     if (b)
@@ -495,9 +503,8 @@ public:
 
     Size sz = get_window_size();
 
-    GLint vp [4]; 
-    glGetIntegerv (GL_VIEWPORT, vp);
-
+    // GLint vp [4]; 
+    // glGetIntegerv (GL_VIEWPORT, vp);
     // std::cout << "win is (" << sz.width << "," << sz.height << ")" << std::endl;
     // std::cout << "win is (" << vp[2] << "," << vp[3] << ")" << std::endl;
     // std::cout << "ROOT::CALC" << std::endl;
@@ -518,7 +525,7 @@ public:
 
     /**
      * this is very bad for performance:
-     * TODO: change it to a manual check agaisn last buffer window_size
+     * TODO: change it to a manual check against last buffer window_size
      * 
      * @info: This is here because displayServer his asynchrnoous, so the BG can be rendered
      *        with a given context size, while the components did not receive the update yet
@@ -526,11 +533,6 @@ public:
     calc_elements();
 
     // std::cout << "CALC TOOK: " << Benchmark::since_mark(Micro) << " us" << std::endl;
-
-    // Rect r( 40, 100, 200, 200 );
-    // draw_rounded_quad( &r, WHITE, glm::vec4( 5, 10, 0, 20 ), &sz );
-
-    // return;
 
     if (root != nullptr)
     {

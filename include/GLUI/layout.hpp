@@ -13,6 +13,35 @@
 #define LAYOUT_FILL         (-1)
 #define LAYOUT_FIT_CONTENT  (-2)
 
+
+enum Spacing : int {
+    Tiny       = 4,
+    Small      = 8,
+    SmallM     = 12,
+    MediumS    = 16,
+    Medium     = 20,
+    MediumL    = 24,
+    Large      = 28,
+    LargeX     = 32,
+};
+
+enum FontSize : int {
+    S_100      = 48, 
+    S_200      = 44, 
+    S_300      = 40, 
+    S_400      = 36, 
+    S_500      = 24, 
+    S_600      = 20, 
+    S_700      = 16, 
+    S_800      = 12, 
+    S_900      =  8, 
+};
+
+enum Layout : int {
+    Fill       = -1,
+    FitContent = -2
+};
+
 enum LayoutMode {
     Fixed = 0,
     Auto
@@ -29,8 +58,60 @@ struct Padding {
     Padding( uint8_t t, uint8_t r, uint8_t b, uint8_t l) : 
         top(t), right(r), bottom(b), left(l) {}
 
-    Padding( uint8_t v, uint8_t h) : 
+    Padding( uint8_t v, uint8_t h ) : 
         top(v), right(h), bottom(v), left(h) {}
+
+};
+
+struct Edges {
+    uint8_t top, right, bottom, left;
+};
+
+struct Corners {
+    uint8_t topright;
+    uint8_t topleft;
+    uint8_t bottomleft;
+    uint8_t bottomright;
+};
+
+struct Border
+{
+    uint8_t top;
+    uint8_t right;
+    uint8_t bottom;
+    uint8_t left;
+
+    Corners radius;
+    RGBA color;
+    Border(uint8_t all, RGBA color) : top(all), right(all), bottom(all), left(all), color(color) {};
+    Border(uint8_t t, uint8_t r, uint8_t b, uint8_t l, RGBA color) : top(t), right(r), bottom(b), left(l), color(color) {};
+
+    bool exists() {
+        return ( top + right + left + bottom ) > 0;
+    }
+
+    void set_radius( uint8_t r ) {
+        radius.bottomleft  = r;
+        radius.bottomright = r;
+        radius.topleft     = r;
+        radius.topright    = r;
+    } 
+
+    void set_radius( Corners r ) {
+        radius = r;
+    }
+
+    RGBA get_color() { return color; }
+    void set_color( RGBA c ) {
+        color = c;
+    }
+};
+
+enum Alignment {
+    Start,
+    Center,
+    End,
+    Even
 };
 
 struct ChildrenData {
@@ -49,8 +130,10 @@ enum ElementCapabilities {
     CNone        = 0,
     CClickable   = 1 << 0,  
     CFocusable   = 1 << 1,  
-    CHoverable   = 1 << 2 
+    CHoverable   = 1 << 2 ,
+    CToggable    = 1 << 3 ,
 };
+
 
 class Element;
 typedef std::function<void(Element*)> draw_callback_t;
@@ -58,7 +141,13 @@ typedef std::function<void(Element*)> draw_callback_t;
 class Element {
 public:
     Rect rect;
+
+    RGBA bg_color = BLACK;
+    RGBA fg_color = WHITE;
+
     Padding padding = Padding(0);
+    Border border   = Border(0, BLACK);
+
     uint32_t id     = 0; 
 
     Element* m_parent = nullptr;
@@ -77,7 +166,6 @@ protected:
 
     LayoutMode lm;
 
-    RGB bg_color = BLACK;
 
     std::vector<Element*> children;
 
@@ -85,14 +173,14 @@ protected:
     bool m_fixed = false;
 
 public:
-    Element() :              id(Element::getid()), lm(LayoutMode::Auto), rect(Size(LAYOUT_FILL)) {}
-    Element(RGB c) :         id(Element::getid()), lm(LayoutMode::Auto), bg_color(c), rect(Rect()) {}
-    Element(Size s, RGB c) : id(Element::getid()), lm(LayoutMode::Auto), rect(Rect(0, 0, s.width, s.height)), bg_color(c) {}
-    Element(Rect r, RGB c) : id(Element::getid()), lm(LayoutMode::Fixed), rect(r), bg_color(c) {}
+    Element() :               id(Element::getid()), lm(LayoutMode::Auto), rect(Size(LAYOUT_FILL)) {}
+    Element(RGBA c) :         id(Element::getid()), lm(LayoutMode::Auto), bg_color(c), rect(Rect()) {}
+    Element(Size s, RGBA c) : id(Element::getid()), lm(LayoutMode::Auto), rect(Rect(0, 0, s.width, s.height)), bg_color(c) {}
+    Element(Rect r, RGBA c) : id(Element::getid()), lm(LayoutMode::Fixed), rect(r), bg_color(c) {}
 
     static uint32_t getid() {
         static uint32_t c = 0;
-        std::cout << "NEW ID GIVEN " << (c + 1) << std::endl;
+        // std::cout << "NEW ID GIVEN " << (c + 1) << std::endl;
         return ++c;
     }
 
@@ -114,14 +202,22 @@ public:
         padding = p;
     }
 
-    void set_background_color(RGB c) {
+    void set_border ( Border b ) {
+        border = b;
+    }
+
+    Border* get_border () {
+        return &border;
+    }
+
+    void set_background_color(RGBA c) {
         bg_color = c;
     }
 
-    void set_hover_background_color(RGB c) {
-        bg_color = c;
+    void set_foreground_color(RGBA c) {
+        fg_color = c;
     }
-        
+
     std::vector<Element *> get_children() {
         return children;
     }
@@ -144,6 +240,9 @@ public:
     void toggle_hidden() {
         hidden = !hidden; 
     }
+    void toggle_hidden(bool stt) {
+        hidden = stt;
+    }
 
     void hide() {
         hidden = true; 
@@ -157,8 +256,17 @@ public:
         return hidden;
     }
 
-    RGB get_background_color() const {
+    RGBA get_background_color() const {
         return bg_color;
+    }
+
+    Size get_reserved_size() const {
+        static Size sz = Size(0, 0);
+
+        sz.width  = padding.left + padding.right + border.left + border.right;
+        sz.height = padding.bottom + padding.top + border.top + border.bottom;
+
+        return sz;
     }
 
     /**
@@ -178,10 +286,25 @@ public:
             return;
         }
 
-        // std::cout << id << "Drawn ID: " << id << " " << true_rect.width << ", " << true_rect.height << std::endl;
         draw_quad(true_rect, bg_color, window);
 
+        draw_border( window );
+
         draw_children(NULL, window);
+    }
+
+    void draw_border( Size *window ) {
+        auto tr = true_rect;
+
+        auto top = Rect( tr.x, tr.y, tr.width, border.top );
+        auto bot = Rect( tr.x, tr.y+tr.height - border.bottom, tr.width, border.bottom);
+        auto rig = Rect( tr.x, tr.y, border.left, tr.height );
+        auto lef = Rect( tr.x + tr.width - border.left, tr.y, border.right, tr.height );
+
+        draw_quad(&top, border.color, window);
+        draw_quad(&bot, border.color, window);
+        draw_quad(&rig, border.color, window);
+        draw_quad(&lef, border.color, window);
     }
 
     void draw_children(Rect *parent, Size *window)
@@ -199,7 +322,11 @@ public:
         }
     }
 
-    ChildrenData calc_children_data( Size* window) {
+    /**
+     * TODO: this SHOULD grab true_rect, it must remais agnostic of child methods
+     * wherever the true_rect is being calculated it must remain there.
+     */
+    ChildrenData calc_children_data( Size* window ) {
         auto c = ChildrenData{
             .max_width=0,
             .max_height=0,
@@ -209,40 +336,44 @@ public:
 
         for (auto el : children)
         {
-            auto r = el->rect;
+            auto r = el->get_true_rect();
 
-            if ( el->rect.width == LAYOUT_FIT_CONTENT || el->rect.height == LAYOUT_FIT_CONTENT ) {
-                el->calc_fit_content_self( &r, window);
+            if ( el->rect.width == Layout::FitContent || el->rect.height == Layout::FitContent) {
+                el->calc_fit_content_self(r, window);
             }
 
-            if ( r.height > c.max_height) {
-                c.max_height = r.height; 
-            }
-            if ( r.width > c.max_width) {
-                c.max_width = r.width;
+            if ( r->height > c.max_height) {
+                c.max_height = r->height; 
             }
 
-            c.total_width  += r.width; 
-            c.total_height += r.height; 
+            if ( r->width > c.max_width) {
+                c.max_width = r->width;
+            }
+
+            c.total_width  += r->width; 
+            c.total_height += r->height; 
+
+            // r->debug();
+            // std::cout << "TW = " << c.total_width  << std::endl;
+            // std::cout << "TH = " << c.total_height << std::endl;
         }
 
        return c; 
     }
 
-    virtual void calc_fit_content_self(Rect *current, Size *window )
+    virtual void calc_fit_content_self( Rect* current, Size *window )
     {
-
         auto c = calc_children_data(window);
-
+        auto r = get_reserved_size();
+        
         if (rect.width == LAYOUT_FIT_CONTENT)
         {
-            // TODO: include gaps?
-            current->width = c.total_width + padding.left + padding.right;
+            current->width = c.total_width + r.width;
         }
 
         if (rect.height == LAYOUT_FIT_CONTENT)
         {
-            current->height = c.max_height + padding.top + padding.bottom;
+            current->height = c.max_height + r.height;
         }
     }
 
@@ -256,12 +387,12 @@ public:
 
             Rect copy = el->rect;
 
-            copy.x += padding.left + tr->x;
-            copy.y += padding.top  + tr->y;
+            copy.x += padding.left + border.left + tr->x;
+            copy.y += padding.top + border.top + tr->y;
 
             if (el->rect.width == LAYOUT_FILL)
             {
-                copy.width = parent->width - copy.x - padding.right;
+                copy.width = parent->width - copy.x - padding.right - border.right;
             }
             else
             {
@@ -270,7 +401,7 @@ public:
 
             if (el->rect.height == LAYOUT_FILL)
             {
-                copy.height = parent->height - copy.y - padding.bottom;
+                copy.height = parent->height - copy.y - padding.bottom - border.right;
             }
             else
             {
@@ -295,6 +426,14 @@ public:
 
     void set_rect( Rect r ) {
         rect = r;
+    }
+    void set_position( Coord c ) {
+        rect.x = c.x;
+        rect.y = c.y;
+    }
+    void set_size( Size s ) {
+        rect.width  = s.width;
+        rect.height = s.height;
     }
 
     Rect* get_true_rect () {
@@ -362,8 +501,13 @@ public:
         {
             if (el->rect.height != LAYOUT_FILL)
             {
-                i += el->rect.height;
+                i += el->true_rect.height;
             }
+
+            // TODO: this has a stupid bug
+            // if ( el->rect.height == Layout::FitContent ) {
+            //    i += el->true_rect.height; 
+            // }
         }
 
         return i;
@@ -390,25 +534,34 @@ class Row : public Element
 public:
     uint8_t gap;
 
-    Row(Size s, uint8_t gap, RGB c) : gap(gap), Element(s, c)
-    {
-        lm = LayoutMode::Auto;
+    Row(Size s, uint8_t gap, RGBA c) : gap(gap), Element(s, c) { lm = LayoutMode::Auto; }
+    Row(Rect r, uint8_t gap, RGBA c) : gap(gap), Element(r, c) { lm = LayoutMode::Auto; };
+
+    virtual void calc_fit_content_self( Rect* current, Size *window ) override {
+        auto c = calc_children_data(window);
+        auto reserved = get_reserved_size();
+
+        if ( rect.width == LAYOUT_FIT_CONTENT ) {
+            auto total_gap = (children.size() - 1) * gap;
+            current->width = c.total_width + reserved.width + total_gap;
+        }
+
+        if ( rect.height == LAYOUT_FIT_CONTENT ) {
+            current->height = c.max_height + reserved.height;
+        }
     }
 
-    Row(Rect r, uint8_t gap, RGB c) : gap(gap), Element(r, c)
-    {
-        lm = LayoutMode::Auto;
-    };
 
     virtual void calc_children_true_rects(Rect *parent, Size *window) override
     {
-        // std::cout << "CCTR ::ROW" << std::endl;
+
+        auto reserved = get_reserved_size();
 
         // --- Calc auto fill variables
         auto fw_count = count_fillw_children();
 
         auto total_gap = (children.size() - 1) * gap;
-        auto total_padding = padding.right + padding.left;
+        auto total_padding = reserved.width;
 
         auto fw_size = true_rect.width - total_gap - get_fixed_width_children_sum() - total_padding;
         auto fw_p_el = fw_count ? fw_size / fw_count : 0;
@@ -423,7 +576,7 @@ public:
             // copy.x += parent->x;
             // copy.y += parent->y;
 
-            copy.y += padding.top;
+            copy.y += padding.top + border.top;
             copy.x += i * gap + offsetX;
 
             if (el->rect.width == LAYOUT_FILL)
@@ -437,7 +590,7 @@ public:
 
             if (el->rect.height == LAYOUT_FILL)
             {
-                copy.height = parent->height - padding.top - padding.bottom;
+                copy.height = parent->height - reserved.height;
             }
             else
             {
@@ -473,51 +626,46 @@ class Pile : public Element
 public:
     uint8_t gap;
 
-    Pile(Size s, uint8_t gap, RGB c) : gap(gap), Element(s, c)
-    {
-        lm = LayoutMode::Auto;
-    }
-
-    Pile(Rect r, uint8_t gap, RGB c) : gap(gap), Element(r, c)
-    {
-        lm = LayoutMode::Auto;
-    };
+    Pile(Size s, uint8_t gap, RGBA c) : gap(gap), Element(s, c){}
+    Pile(Rect r, uint8_t gap, RGBA c) : gap(gap), Element(r, c){}
 
     virtual void calc_fit_content_self( Rect* current, Size *window ) override {
-        auto c = calc_children_data(window);
+
+        auto c        = calc_children_data(window);
+        auto reserved = get_reserved_size();
 
         if ( rect.width == LAYOUT_FIT_CONTENT ) {
-            current->width = c.max_width + padding.left + padding.right; 
+            current->width = c.max_width + reserved.width;
         }
 
         if ( rect.height == LAYOUT_FIT_CONTENT ) {
             auto total_gap = (children.size() - 1) * gap;
-            current->height = c.total_height + padding.top + padding.bottom + total_gap;
+            current->height = c.total_height + reserved.height + total_gap;
         }
     }
 
     virtual void calc_children_true_rects(Rect *parent, Size *window) override
     {
+        auto reserved = get_reserved_size();
+
         // --- Calc auto fill variables
         auto fh_count = count_fillh_children();
 
-        // std::cout << "PILE::Calcing: " << std::to_string(children.size()) << "children.." << std::endl;
-
         auto total_gap     = (children.size() - 1) * gap;
-        auto total_padding = padding.top + padding.bottom;
+        auto total_padding = reserved.height;
 
         auto fh_size = true_rect.height - total_gap - get_fixed_height_children_sum() - total_padding;
         auto fw_p_el = fh_count ? fh_size / fh_count : 0;
         // ---
 
         int i = 0;
-        int offsetY = padding.top; 
+        int offsetY = padding.top + border.top; 
 
         for (auto el : children)
         {
             Rect copy = true_rect;
 
-            copy.x += padding.left;
+            copy.x += padding.left + border.left;
             copy.y += i * gap + offsetY;
 
             if (el->rect.height == LAYOUT_FILL)
@@ -531,7 +679,7 @@ public:
 
             if (el->rect.width == LAYOUT_FILL)
             {
-                copy.width = true_rect.width - total_padding;
+                copy.width = true_rect.width - reserved.width;
             }
             else
             {
@@ -543,14 +691,11 @@ public:
              */
             if (el->rect.height == LAYOUT_FIT_CONTENT || el->rect.width == LAYOUT_FIT_CONTENT)
             {
-                // std::cout << "Calcing FIT_CONTENT" << std::endl;
                 el->calc_fit_content_self(&copy, window);
             }
 
             el->set_true_rect(copy);
-
-            el->calc_children_true_rects(&true_rect, window);
-            // el->draw( &copy, window);
+            el->calc_children_true_rects(&copy, window);
 
             offsetY += copy.height;
             i++;
@@ -559,17 +704,5 @@ public:
 };
 
 
-struct Border
-{
-
-    uint8_t top;
-    uint8_t right;
-    uint8_t bottom;
-    uint8_t left;
-
-    RGB color;
-    Border(uint8_t all, RGB color) : top(all), right(all), bottom(all), left(all), color(color) {};
-    Border(uint8_t t, uint8_t r, uint8_t b, uint8_t l, RGB color) : top(t), right(r), bottom(b), left(l), color(color) {};
-};
 
 #endif

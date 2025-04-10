@@ -10,6 +10,7 @@ void printVector(float* vec, int totalSize, int rowSize);
 
 
 void initialize_drawing();
+void load_shaders();
 
 void normalize(Rect * rect, Size*window, float* vertices);
 void normalize_rect(Rect * rect, Size *window );
@@ -20,9 +21,11 @@ void apply_tex(float* vertices, float* nvertices);
 /**
  * 
  */
-void draw_quad(Rect rect, RGB c, Size*window);
-void draw_quad(Rect *rect, RGB c, Size*window);
+void draw_quad(Rect rect, RGBA c, Size*window);
+void draw_quad(Rect *rect, RGBA c, Size*window);
 
+// void draw_circle(Circle *circle, RGBA c, Size*window);
+void draw_circle(Rect *rect, RGBA c, Size*window);
 /**
  * 
  */
@@ -31,7 +34,7 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window);
 /**
  * 
  */
-void draw_rounded_quad( Rect *r, RGB c, glm::vec4 corners, Size* window);
+void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, Size* window);
 
 
 /**

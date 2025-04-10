@@ -18,22 +18,29 @@ void main()
     //                              v
     vec2 tc = TexCoord;
     tc.y = 1. - tc.y;
+    
+    vec2 centered = tc - 0.5;
+    vec2 mappedCoord;
 
-    // FragColor = texture( ourTexture, tc );
-    // return
+    const bool USE_INVERSE_MAPPING = true;
+    if ( USE_INVERSE_MAPPING ) {
 
-    // invert translation to "immune" it against the next inverse function
-    vec2 translationUV = vec2(-u_kernel[0][2], u_kernel[1][2]) / u_texSize; 
+        // invert translation to "immune" it against the next inverse function
+        vec2 translationUV = vec2(-u_kernel[0][2], u_kernel[1][2]) / u_texSize; 
 
-    mat3 kernel = inverse(u_kernel);
+        mat3 kernel = inverse(u_kernel);
 
-    vec2 centered = tc - .5;
+        vec3 coord = kernel * vec3( centered, 1.0 );
 
-    vec3 coord = kernel * vec3( centered, 1.0 );
+        mappedCoord = coord.xy + .5 + translationUV;
 
-    vec2 mappedCoord = coord.xy + .5 + translationUV;
+    } else {
+        vec3 coord = u_kernel * vec3(centered, 1.0);
 
-    if ( mappedCoord.x < 0. || mappedCoord.x > 1. ||  mappedCoord.y < 0. || mappedCoord.y > 1. ) {
+        vec2 mappedCoord = coord.xy + 0.5;
+    }
+
+    if (mappedCoord.x < 0.0 || mappedCoord.x > 1.0 || mappedCoord.y < 0.0 || mappedCoord.y > 1.0) {
         discard;
     }
 

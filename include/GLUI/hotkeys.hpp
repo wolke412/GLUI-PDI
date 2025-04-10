@@ -22,6 +22,11 @@ struct Hotkey {
 
 class Hotkeys {
 public:
+    void registerhk(int key, int modifiers, std::function<void()> callback) {
+        Hotkey hk{key, modifiers, callback};
+        hotkeys[{key, modifiers}] = hk;
+    }
+
     void registerhk(char key, int modifiers, std::function<void()> callback) {
         Hotkey hk{key, modifiers, callback};
         hotkeys[{key, modifiers}] = hk;

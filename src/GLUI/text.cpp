@@ -160,7 +160,7 @@ int TextCalcRenderHeightSingleLine( const std::string t, float scale) {
 //
 // Render line of text
 // -------------------
-void RenderText(std::string text, Coord at, float scale, RGB color, Size *window)
+void RenderText(std::string text, Coord at, float scale, RGBA color, Size *window)
 {
 
     if ( ! shader_text ) {
@@ -178,7 +178,7 @@ void RenderText(std::string text, Coord at, float scale, RGB color, Size *window
 
     shader_text->use();
     shader_text->setMat4("projection", projection);
-    shader_text->setFloat3("textColor", color.R, color.G, color.B);
+    shader_text->setFloat4("textColor", color.R, color.G, color.B, color.A);
     // glUniform3f(glGetUniformLocation(shader.ID, "textColor"), color.x, color.y, color.z);
     
     glActiveTexture(GL_TEXTURE0);

@@ -36,10 +36,17 @@ public:
     void push(Stage s)
     {
         stages.push_back(s);
-        std::cout << "Total size : " << stages.size() << std::endl;
+        // std::cout << "Total size : " << stages.size() << std::endl;
     }
 
     int size() { return stages.size(); }
+    int active_size() {
+        int c = 0;
+        for( auto s : stages ) {
+            if (s->is_enabled()) c++;
+        }
+        return c; 
+    }
 
     bool swap( size_t from, size_t to ) {
         if (from >= stages.size() || to >= stages.size())
@@ -49,6 +56,10 @@ public:
 
         auto temp = stages[from];
         stages[from] = stages[to];
+    }
+
+    void remove( int idx ) {
+        stages.erase( stages.begin() + idx );
     }
 
     void clear() { 
@@ -65,7 +76,12 @@ public:
 
     void run(PDI *p)
     {
-        for (auto s : stages) BP::handle(p, s);
+        for (auto s : stages) {
+            if ( s->is_enabled() ) {
+                BP::handle(p, s);
+                int count = 49;
+            }
+        }
     }
 
 #if USE_GPU

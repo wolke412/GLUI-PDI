@@ -11,8 +11,6 @@
 #include <GLUI/layout.hpp>
 #include <GLUI/behaviour.hpp>
 
-void draw_button (std::string text, Rect r, RGB c, Size* window);
-
 class Button;
 typedef std::function<void(Button&)> click_callback_t;
 
@@ -22,12 +20,10 @@ class Button: public Focusable, public Hoverable {
 
         uint8_t font_size = DEFAULT_FONT_SIZE;
 
-        // RGB fg_color       = WHITE;
-
     public:
         click_callback_t cb_onclick;
 
-        Button(const std::string text, RGB c): Element(Size(LAYOUT_FIT_CONTENT, LAYOUT_FIT_CONTENT), c )
+        Button(const std::string text, RGBA c): Element(Size(LAYOUT_FIT_CONTENT, LAYOUT_FIT_CONTENT), c )
         {
             capabilities |= CClickable;            
 
@@ -39,7 +35,7 @@ class Button: public Focusable, public Hoverable {
 
         /**
          * Remember kids: 
-         * Buttons children must be Text and Img 
+         * Button's children must be Text and Img 
          * OR
          * A direct Element if a *FIXED SIZE*;
          */
@@ -53,13 +49,16 @@ class Button: public Focusable, public Hoverable {
         }
 
         void click()  {
-            std::cout << "CLICK EVENT ON :: " << id << std::endl;
-
+            // std::cout << "CLICK EVENT ON :: " << id << std::endl;
             if (cb_onclick)
             {
                 cb_onclick( *this );
             }
         }
+
+};
+
+class ToggleButton: public Button {
 
 };
 

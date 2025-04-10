@@ -4,19 +4,27 @@
 
 #include <immintrin.h>  // For AVX2 intrinsics
 #include <variant>
-                       
 
 
 
 
-Shader* shader_brightness = nullptr;
-Shader* shader_threshold  = nullptr;
-Shader* shader_greyscale  = nullptr;
+Shader* shader_brightness  = nullptr;
+Shader* shader_threshold   = nullptr;
+Shader* shader_greyscale   = nullptr;
+Shader* shader_median = nullptr;
+Shader* shader_convolution = nullptr;
+//
+Shader* shader_sobel = nullptr;
+
 
 void PDI::load_shaders() {
-    shader_brightness = new Shader ("shaders/tex_rect.vs", "shaders/filters/brightness-contrast.fs");
-    shader_greyscale  = new Shader ("shaders/tex_rect.vs", "shaders/filters/greyscale.fs");
-    shader_threshold  = new Shader ("shaders/tex_rect.vs", "shaders/filters/threshold.fs");
+    shader_brightness  = new Shader ("shaders/tex_rect.vs", "shaders/filters/brightness-contrast.fs");
+    shader_greyscale   = new Shader ("shaders/tex_rect.vs", "shaders/filters/greyscale.fs");
+    shader_threshold   = new Shader ("shaders/tex_rect.vs", "shaders/filters/threshold.fs");
+    shader_median      = new Shader ("shaders/tex_rect.vs", "shaders/filters/median-filter.fs");
+    shader_convolution = new Shader ("shaders/tex_rect.vs", "shaders/filters/convolution.fs");
+    //
+    shader_sobel = new Shader ("shaders/tex_rect.vs", "shaders/filters/sobel.fs");
 }
 
 void PDI::layout() {
@@ -34,57 +42,19 @@ void PDI::update() {
 
 void PDI::update_pipeline() {
     layout_pipeline_components(); 
+    update();
 }
 
-
-
-
+/**
+ * Reseta os campos de transformação 
+ */
 void PDI::reset_transform() {
    m_scale_x = 1.; 
    m_scale_y = 1.; 
    m_translate_y = 0; 
-   m_translate_y = 0; 
+   m_translate_x = 0; 
    m_angle = 0.;
    m_mirror_axis = Axis::None;
-}
-
-mat PDI::get_transform_kernel() {
-
-    float *buf = new float[9]();
-    mat kernel   = identity_matrix(buf);
-    kernel.heap = true;
-
-    // --- MIRROR ---
-    if ( m_mirror_axis != Axis::None ) {
-        float buf_m[9] = {0};
-        mirror_matrix( m_mirror_axis, buf_m );
-        mat mirror = mat3( buf_m, 3 );
-        mat_mul_mut( &mirror, &kernel );
-    }
-
-    // --- SCALE ---
-    if ( m_scale_x != 0 || m_scale_y != 0 ) {
-        float buf_s[9] = {0};
-        scale_matrix( m_scale_x, m_scale_y, buf_s );
-        mat scale = mat3( buf_s, 3 );
-        mat_mul_mut( &scale, &kernel );
-    }
-
-    // --- ROTATE ---
-    if ( m_angle != 0 ) {
-        float buf_r[9] = {0};
-        rotation_matrix( m_angle, buf_r, Axis::Z );
-        mat rot = mat3( buf_r, 3 );
-        mat_mul_mut( &rot, &kernel );
-    }
-
-    // --- TRANSLATE ---
-    if ( m_translate_x != 0 || m_translate_y != 0 ) {
-        float buf_t[9] = {0};
-        translate_matrix( m_translate_x, m_translate_y, buf_t );
-        mat trans = mat3( buf_t, 3 );
-        mat_mul_mut( &trans, &kernel );
-    }
 }
 
 /**
@@ -137,7 +107,7 @@ void PDI::transform() {
         mat_mul_mut( &trans, &kernel );
     }
 
-    kernel.debug(); 
+    // kernel.debug(); 
     
     auto in  = input->get_binary();
     auto out = output->get_binary();
@@ -158,16 +128,17 @@ void PDI::transform() {
     auto winsz = glui->get_window_size();
     auto imgsz = output->get_size();
 
-    if ( pipeline.size() )  {
+    if ( pipeline.size() || pipeline.active_size() )  {
         pipeline.run(this);
         MultiPassFBO multipassFBO(imgsz->width, imgsz->height);
         multipassFBO.process(output->m_fbo.texture, *(pipeline.get_shaders()), &winsz, output->m_fbo.FBO);
         pipeline.flush_shaders();
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, output->m_fbo.FBO);
-    unsigned char pixels[3]; // RGB
-    glReadPixels(imgsz->width / 2, imgsz->height / 2, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+    // glBindFramebuffer(GL_FRAMEBUFFER, output->m_fbo.FBO);
+
+    // unsigned char pixels[3]; // RGB
+    // glReadPixels(imgsz->width / 2, imgsz->height / 2, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
     // std::cout << "FBO Color at Center: ("
     //             << (int)pixels[0] << ", "
@@ -278,33 +249,32 @@ void bilinear_interpolate(uint8_t* in, int w, int h, float x, float y, uint8_t* 
     float dx = x - x0;
     float dy = y - y0;
 
-    // Clamp
     x0 = (x0 < 0) ? 0 : (x0 >= w ? w - 1 : x0);
     y0 = (y0 < 0) ? 0 : (y0 >= h ? h - 1 : y0);
     x1 = (x1 < 0) ? 0 : (x1 >= w ? w - 1 : x1);
     y1 = (y1 < 0) ? 0 : (y1 >= h ? h - 1 : y1);
 
     for (int c = 0; c < ch; c++) {
-        // Get four neighboring pixels
         uint8_t p00 = in[(y0 * w + x0) * ch + c];
         uint8_t p10 = in[(y0 * w + x1) * ch + c];
         uint8_t p01 = in[(y1 * w + x0) * ch + c];
         uint8_t p11 = in[(y1 * w + x1) * ch + c];
 
-        // Interpolate horizontally
+        // interpolate hor
         float i0 = p00 + dx * (p10 - p00);
         float i1 = p01 + dx * (p11 - p01);
 
-        // Interpolate vertically
+        // interpolate ver
         float value = i0 + dy * (i1 - i0);
 
-        // Write result
         out[c] = (uint8_t)(value + 0.5f);
     }
 }
 
 /**
  * this is black magic
+ * 
+ * usei esse tipo de função pra otimizar na fase de testes em CPU;
  */
 void __simd_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz, uint8_t ch ) {
 
@@ -355,7 +325,7 @@ void __simd_kernel_multiplication( mat* r, uint8_t* in, uint8_t* nout, Size* sz,
             // f0 = (j + 0.5) - cx
             __m256 f0_1 = _mm256_sub_ps(_mm256_add_ps(j_vec1, half_vec), cx_vec);
         
-            // Compute transformed x, y coordinates
+            // compute transformed x, y coordinates
             __m256 x_vec1 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(M00_vec, f0_1), _mm256_mul_ps(M01_vec, f1_vec)), M02_vec);
             __m256 y_vec1 = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(M10_vec, f0_1), _mm256_mul_ps(M11_vec, f1_vec)), M12_vec);
         

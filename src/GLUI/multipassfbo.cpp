@@ -50,7 +50,19 @@ void MultiPassFBO::process(GLuint inputTexture, const std::vector<FnShader> &pas
     for (size_t i = 0; i < passes.size(); ++i) {
         glBindFramebuffer(GL_FRAMEBUFFER, ping_pong_fbos[writeIndex]);
         std::cout << "Stage: " << i << " Textue: " << tex << std::endl;
+
+        GLuint query;
+        glGenQueries(1, &query);
+        glBeginQuery(GL_TIME_ELAPSED, query);
+
         passes[i](tex, &glshit, this);
+
+        glEndQuery(GL_TIME_ELAPSED);
+        GLuint time;
+        glGetQueryObjectuiv(query, GL_QUERY_RESULT, &time);
+        std::cout << "Pass " << i << " time: " << (time / 1000000.0) << " ms" << std::endl;
+        glDeleteQueries(1, &query);
+
         swap_buffers();
         tex = ping_pong_tex[readIndex];
     }

@@ -3,10 +3,12 @@
 
 
 GLShit RECT;
+GLShit CIRCLE;
 GLShit TEX_RECT;
 
 
 Shader *rect_shader          = nullptr;
+Shader *circle_shader        = nullptr;
 Shader *tex_rect_shader      = nullptr;
 Shader *rounded_rect_shader  = nullptr;
 
@@ -32,15 +34,25 @@ void printVector(float* vec, int totalSize, int rowSize) {
 
 
 void init_quad( GLShit *gl );
+void init_circle( GLShit *gl );
+void set_buffers( GLuint *VAO, GLuint *VBO );
 
-void initialize_drawing() {
+void load_shaders() {
     rect_shader         = new Shader("shaders/rect.vs", "shaders/rect.fs");
+    circle_shader       = new Shader("shaders/circle.vs", "shaders/circle.fs");
     tex_rect_shader     = new Shader("shaders/tex_rect.vs", "shaders/tex_rect.fs");
     rounded_rect_shader = new Shader("shaders/rounded-rect.vs", "shaders/rounded-rect.fs");
 
     kernel_compute_shader  = new Shader("shaders/tex_rect.vs", "shaders/tex_compute_kernel.fs");
-    
-    init_quad( &RECT );
+}
+void initialize_drawing() {
+   
+    load_shaders();
+
+    init_quad( &RECT  );
+    // init_circle( &CIRCLE );
+    set_buffers( &CIRCLE.VAO, &CIRCLE.VBO );
+    // set_buffers( &CIRCLE.VAO, &CIRCLE.VBO );
 }
 
 
@@ -65,6 +77,23 @@ void set_buffers( GLuint *VAO, GLuint *VBO ){
 }
 
 void init_quad( GLShit *gl ){
+
+    glGenVertexArrays(1, &gl->VAO);
+
+    glGenBuffers(1, &gl->VBO);
+
+    glBindVertexArray(gl->VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, gl->VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * 4, nullptr, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0); 
+
+    //unbind
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+void init_circle( GLShit *gl ){
 
     glGenVertexArrays(1, &gl->VAO);
 
@@ -138,8 +167,7 @@ void apply_tex(float* vertices, float* nvertices) {
     }
 }
 
-
-void draw_quad( Rect *r, RGB c , Size* window) {
+void draw_quad( Rect *r, RGBA c , Size* window) {
 
     float vertices[8];
 
@@ -158,7 +186,7 @@ void draw_quad( Rect *r, RGB c , Size* window) {
 
     // Set button color
     rect_shader->use();
-    rect_shader->setFloat3("buttonColor", c.R, c.G, c.B);
+    rect_shader->setFloat4("buttonColor", c.R, c.G, c.B, c.A);
 
     // Draw the quad as two triangles
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -169,7 +197,36 @@ void draw_quad( Rect *r, RGB c , Size* window) {
     glBindVertexArray(0);
 }
 
-void draw_rounded_quad( Rect *r, RGB c, glm::vec4 corners, Size* window) {
+void draw_circle( Rect *r, RGBA c , Size* window ) {
+
+    float jvertices[8]; 
+    float vertices[16]; // 8 for coord + 8 for tex
+
+    normalize(r, window, jvertices);
+    apply_tex(jvertices, vertices);
+
+    if ( circle_shader == nullptr ) {
+        std::cout << "ERROR::UNINITIALIZED_SHADER ::" << "circle_shader" << std::endl;
+        return;
+    }
+
+    glBindVertexArray(CIRCLE.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, CIRCLE.VBO);
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+
+    circle_shader->use();
+    circle_shader->setFloat4("rect", (float)r->x, (float)r->y, (float)r->width, (float)r->height);
+    circle_shader->setFloat4("color", c.R, c.G, c.B, c.A);
+
+    glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
+    glBindBuffer( GL_ARRAY_BUFFER, 0    );
+    glBindVertexArray(0);
+}
+
+
+
+void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, Size* window) {
 
     float vertices[8];
 
@@ -188,7 +245,9 @@ void draw_rounded_quad( Rect *r, RGB c, glm::vec4 corners, Size* window) {
 
     rounded_rect_shader->use();
     rounded_rect_shader->setFloat2("resolution", window->width, window->height);
-    rounded_rect_shader->setFloat3("buttonColor", c.R, c.G, c.B);
+
+    // TODO
+    rounded_rect_shader->setFloat4("buttonColor", c.R, c.G, c.B, c.A);
     rounded_rect_shader->setFloat4("corners", corners);
     rounded_rect_shader->setFloat2("size", r->width, r->height );
     rounded_rect_shader->setFloat2("offset", r->x, window->height - r->height - r->y );
@@ -200,9 +259,12 @@ void draw_rounded_quad( Rect *r, RGB c, glm::vec4 corners, Size* window) {
     glBindVertexArray(0);
 }
 
-void draw_quad( Rect r, RGB c , Size* window) {
+void draw_quad( Rect r, RGBA c , Size* window) {
     draw_quad(&r, c, window);
 }
+/**
+ * 
+ */
 
 
 void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
@@ -259,7 +321,7 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
 
 void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img, Size* win ) {
 
-    std::cout << "computing tex quad" << std::endl;
+    // std::cout << "computing tex quad" << std::endl;
 
     float jvertices[8]; 
     float vertices[16]; // 8 for coord + 8 for tex
