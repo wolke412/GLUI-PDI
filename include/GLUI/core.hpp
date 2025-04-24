@@ -79,6 +79,9 @@ private:
 
   GLFWwindow *window;
 
+  float m_delta_seconds = 0.;
+  float m_previous_time = 0.;
+
   Mouse mouse;
   Hotkeys m_hotkeys;
 
@@ -91,6 +94,7 @@ private:
   std::vector<Element *> fixed;
 
   Focusable *focused;
+  Draggable *dragging;
 
   // For now just one will suffice
   std::vector<Element *> m_hover_path;
@@ -179,6 +183,7 @@ public:
     glfwSetKeyCallback(window, cb_key_press_event);
     glfwSetCharCallback(window, cb_char_event);
     glfwSetMouseButtonCallback(window, cb_mouse_event);
+    glfwSetCursorPosCallback(window, cb_mouse_move_event);
 
     glfwSetCursorPosCallback(window, cb_mouse_move_event);
 
@@ -202,6 +207,7 @@ public:
   void loop_start()
   {
     clear();
+    calculate_deltas();
     process_input();
 
     /**
@@ -242,10 +248,18 @@ public:
     mouse.at.x = std::clamp((int16_t)x, (int16_t)0, sz.width);
     mouse.at.y = std::clamp((int16_t)y, (int16_t)0, sz.height);
 
-    // 
     // Benchmark::mark();
     check_hovering(  );
-    // std::cout << Benchmark::since_mark(Unit::Micro) << " us" << std::endl;
+  }
+
+  void calculate_deltas() {
+    auto t = glfwGetTime();
+    m_delta_seconds = t - m_previous_time;
+    m_previous_time = t;
+  }
+
+  float get_delta_seconds() const {
+    return m_delta_seconds;
   }
 
   void kill () {
@@ -400,6 +414,40 @@ public:
       return result->size();
   }
 
+  void handle_draggable ( int glfw_action ) {
+    switch ( glfw_action ) {
+      case GLFW_PRESS: {
+        auto e = check_mouse_collisions(shadow_root);
+        if (!e)
+        {
+          std::cout << "Pressed outside of anythgin" << std::endl;
+          return;
+        }
+
+        if (!e->has_capability(CDraggable))
+        {
+          return;
+        }
+
+        Draggable *d = dynamic_cast<Draggable *>(e);
+        if (!d)
+          return;
+
+        d->start_drag(get_mouse_position());
+        dragging = d;
+        break;
+      }
+      
+      case GLFW_RELEASE: {
+        if ( dragging ) {
+          dragging->end_drag(get_mouse_position());
+          dragging = nullptr;
+        }
+        break;
+      }
+    }
+  }
+
   void handle_click()
   {
 
@@ -472,6 +520,9 @@ public:
           return c;
         }
         if ( c->has_capability( CClickable) ) {
+          return c;
+        }
+        if ( c->has_capability( CDraggable) ) {
           return c;
         }
 
@@ -636,13 +687,15 @@ public:
   }
   static void cb_mouse_move_event(GLFWwindow* window, double xpos, double ypos)
   {
-    // std::cout << "MOUSE::MOVED" << std::endl;
-
-        // auto e = GLUI::instance();
-      // auto sz = e->get_window_size();
-      // e->mouse.at.x = std::clamp((int16_t)xpos, (int16_t)0, sz.width);
-      // e->mouse.at.y = std::clamp((int16_t)ypos, (int16_t)0, sz.height);
-      // e->check_hovering();
+    // auto e = GLUI::instance();
+    // auto sz = e->get_window_size();
+    // e->mouse.at.x = std::clamp((int16_t)xpos, (int16_t)0, sz.width);
+    // e->mouse.at.y = std::clamp((int16_t)ypos, (int16_t)0, sz.height);
+    // e->check_hovering();
+    auto i = GLUI::instance();
+    if ( i->dragging != nullptr ) {
+      i->dragging->move_drag( i->get_mouse_position() );
+    }
   }
 
   static void cb_mouse_event(GLFWwindow *window, int button, int action, int mods)
@@ -654,10 +707,13 @@ public:
       if (action == GLFW_PRESS)
       {
         GLUI::instance()->get_mouse()->downed();
+        GLUI::instance()->handle_draggable( GLFW_PRESS );
       }
 
       if (action == GLFW_RELEASE)
       {
+        GLUI::instance()->handle_draggable( GLFW_RELEASE );
+
         auto m = GLUI::instance()->get_mouse();
 
         if (m->get_left_button())

@@ -37,6 +37,9 @@ private:
     ImageHandler *output;
 
     PDIPipeline pipeline;
+
+    bool m_should_update = false;
+
 public:
     Element* render_pipeline;
 
@@ -98,6 +101,7 @@ public:
     void reset_transform();
 
     void transform();
+    void request_update();
     void update();
 
 

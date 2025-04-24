@@ -51,5 +51,6 @@ void main() {
     }else {
         sob = 0.;
     }
+
     FragColor = vec4(vec3( sob ), 1.);
 }

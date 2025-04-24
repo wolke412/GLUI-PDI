@@ -316,7 +316,6 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
     glDeleteVertexArrays(1, &VAO);
 
     glDeleteBuffers(1, &VBO);
-
 }
 
 void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img, Size* win ) {

@@ -132,6 +132,7 @@ enum ElementCapabilities {
     CFocusable   = 1 << 1,  
     CHoverable   = 1 << 2 ,
     CToggable    = 1 << 3 ,
+    CDraggable   = 1 << 4 ,
 };
 
 
@@ -173,10 +174,12 @@ protected:
     bool m_fixed = false;
 
 public:
-    Element() :               id(Element::getid()), lm(LayoutMode::Auto), rect(Size(LAYOUT_FILL)) {}
-    Element(RGBA c) :         id(Element::getid()), lm(LayoutMode::Auto), bg_color(c), rect(Rect()) {}
-    Element(Size s, RGBA c) : id(Element::getid()), lm(LayoutMode::Auto), rect(Rect(0, 0, s.width, s.height)), bg_color(c) {}
-    Element(Rect r, RGBA c) : id(Element::getid()), lm(LayoutMode::Fixed), rect(r), bg_color(c) {}
+    explicit Element(RGBA c) :         id(Element::getid()), lm(LayoutMode::Auto), bg_color(c), rect(Rect()) {}
+    explicit Element(Size s, RGBA c) : id(Element::getid()), lm(LayoutMode::Auto), rect(Rect(0, 0, s.width, s.height)), bg_color(c) {}
+    explicit Element(Rect r, RGBA c) : id(Element::getid()), lm(LayoutMode::Fixed), rect(r), bg_color(c) {}
+    explicit Element() :               id(Element::getid()), lm(LayoutMode::Auto), rect(Size(LAYOUT_FILL)) {
+        std::cout <<  "CREATING FROM EMPTY CONSTRUCTOR" << std::endl;
+    }
 
     static uint32_t getid() {
         static uint32_t c = 0;
@@ -379,38 +382,28 @@ public:
 
     virtual void calc_children_true_rects( Rect * parent, Size * window ) {
 
-        // std::cout << "TRUE_RECT::DEFAULT ccount: " << children.size() <<  std::endl;
+        auto tr      = get_true_rect();
+        auto content = get_content_rect();
 
-        auto tr = get_true_rect();
-
-        for ( auto el : children) {
-
+        for ( auto el : children ) {
             Rect copy = el->rect;
-
-            copy.x += padding.left + border.left + tr->x;
-            copy.y += padding.top + border.top + tr->y;
-
-            if (el->rect.width == LAYOUT_FILL)
-            {
-                copy.width = parent->width - copy.x - padding.right - border.right;
+        
+            float left_offset   = padding.left + border.left;
+            float right_offset  = padding.right + border.right;
+            float top_offset    = padding.top + border.top;
+            float bottom_offset = padding.bottom + border.bottom;
+        
+            copy.x += left_offset + tr->x;
+            copy.y += top_offset  + tr->y;
+        
+            if (el->rect.width == LAYOUT_FILL){
+                copy.width = tr->width - left_offset - right_offset;
             }
-            else
-            {
-                copy.width = el->rect.width;
-            }
-
-            if (el->rect.height == LAYOUT_FILL)
-            {
-                copy.height = parent->height - copy.y - padding.bottom - border.right;
-            }
-            else
-            {
-                copy.height = el->rect.height;
+        
+            if (el->rect.height == LAYOUT_FILL){
+                copy.height = tr->height - top_offset - bottom_offset;
             }
 
-            /**
-             *
-             */
             if (el->rect.height == LAYOUT_FIT_CONTENT || el->rect.width == LAYOUT_FIT_CONTENT)
             {
                 el->calc_fit_content_self(&copy, window );
@@ -420,7 +413,7 @@ public:
 
             el->set_true_rect(copy);
 
-            el->calc_children_true_rects(el->get_true_rect(), window);
+            el->calc_children_true_rects( &copy, window);
         }
     };
 
@@ -440,10 +433,22 @@ public:
         return &true_rect;
     }
 
+    Rect* get_rect () {
+        return &rect;
+    }
+
     void set_true_rect( Rect tr ) {
         // std::cout << "ST::TR" <<
         // std::cout << "TR ::id" << id << ": (" << tr.width << ", " << tr.height << ")" << std::endl;
         true_rect = tr;
+    }
+
+    Rect get_content_rect() {
+        auto r = get_reserved_size();
+        return Rect (
+            0, 0,
+            true_rect.width - r.width, true_rect.height - r.height 
+        );
     }
 
     uint8_t count_fillw_children()
@@ -511,6 +516,11 @@ public:
         }
 
         return i;
+    }
+
+    Coord to_local( Coord c ) {
+        auto p = get_true_rect()->get_pos();
+        return c.difference(&p);
     }
 
     virtual ~Element() {
@@ -625,6 +635,12 @@ class Pile : public Element
 {
 public:
     uint8_t gap;
+
+    // this might cause template bloating with used too largely
+    template<typename... Elements>
+    Pile(Elements*... elems) {
+        (child(elems), ...); // folds appending children
+    }
 
     Pile(Size s, uint8_t gap, RGBA c) : gap(gap), Element(s, c){}
     Pile(Rect r, uint8_t gap, RGBA c) : gap(gap), Element(r, c){}

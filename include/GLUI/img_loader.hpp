@@ -64,7 +64,6 @@ public:
 
     bool load(  )  {
 
-
         // gpu stuff y'know
         // stbi_set_flip_vertically_on_load(true);
 
@@ -226,7 +225,12 @@ public:
 
         if (m_data)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_img_size.width, m_img_size.height, 0, GL_RGB, GL_UNSIGNED_BYTE, m_data);
+            if ( m_ch_count == 4 ) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_img_size.width, m_img_size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_data);
+            }
+            else if ( m_ch_count == 3 ) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_img_size.width, m_img_size.height, 0, GL_RGB, GL_UNSIGNED_BYTE, m_data);
+            }
             glGenerateMipmap(GL_TEXTURE_2D);
 
             // a

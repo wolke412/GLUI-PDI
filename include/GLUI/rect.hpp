@@ -23,6 +23,14 @@ struct Coord {
 
         return std::sqrt(dx * dx + dy * dy);
     }
+
+    Coord difference( Coord *other ) {
+        return Coord( x - other->x, y - other->y );
+    }
+
+    Coord add( Coord *other ) {
+        return Coord( x + other->x, y + other->y );
+    }
 };
 
 struct Size {
@@ -31,6 +39,13 @@ struct Size {
 
     Size(__RECT_TYPE__ width, __RECT_TYPE__ height) : width(width), height(height) {}
     Size(__RECT_TYPE__ sql ) : width(sql), height(sql) {}
+
+    void debug(const char* label = nullptr) const {
+        if (label) {
+            std::cout << label << " ";
+        }
+        std::cout << "(w=" << width << ", h=" << height << ")\n";
+    }
 };
 
 struct Rect {
@@ -62,8 +77,18 @@ struct Rect {
 
     Size *get_size() {
         static Size sz( width, height );
+        sz.width = width;
+        sz.height = height;
         return &sz;
     }
+
+    Coord get_pos() {
+        Coord c( x, y );
+        return c;
+    }
+
+    void set_x( __RECT_TYPE__ f ) { x = f; };
+    void set_y( __RECT_TYPE__ f ) { y = f; };
 
     void debug(const char* label = nullptr) const {
         if (label)

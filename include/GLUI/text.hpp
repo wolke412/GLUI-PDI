@@ -55,15 +55,14 @@ class Text : public Element {
         std::string m_Text; 
         float m_Scale         = 1;
         uint8_t m_Font_size   = DEFAULT_FONT_SIZE;
-        uint8_t m_line_height = DEFAULT_FONT_SIZE;
-
+        uint8_t m_Line_height = DEFAULT_FONT_SIZE;
 
     public:
         Text(const std::string text): m_Text(text), Element() {
             rect.height = Layout::FitContent;
             rect.width  = Layout::FitContent;
 
-            m_line_height = m_Font_size;
+            m_Line_height = m_Font_size;
         }
 
         Text(const std::string text, RGBA fg): m_Text(text), Element() {
@@ -72,7 +71,7 @@ class Text : public Element {
             rect.height = Layout::FitContent;
             rect.width  = Layout::FitContent;
 
-            m_line_height = m_Font_size;
+            m_Line_height = m_Font_size;
         }
 
         void draw( Size *window_size ) override {
@@ -89,7 +88,7 @@ class Text : public Element {
         void calc_fit_content_self(Rect *current, Size *window ) override
         {
             current->width = TextCalcRenderWidth( m_Text, m_Scale );
-            current->height = m_line_height;
+            current->height = m_Line_height;
             // current->height = TextCalcRenderHeightSingleLine( m_Text, m_Scale );
 
             // std::cout << "Getting text fit content: " << std::to_string(current->width) << "x" << std::to_string(current->height) << std::endl;
@@ -105,8 +104,20 @@ class Text : public Element {
 
         void set_font_size( uint8_t fs ) {
             m_Font_size   = fs;
-            m_line_height = fs;
+            m_Line_height = fs;
             m_Scale = (float)fs / (float)DEFAULT_FONT_SIZE;
+        }
+
+        float get_scale()  {
+            return m_Scale;
+        }
+
+        uint8_t get_font_size() {
+            return m_Font_size;
+        }
+
+        uint8_t get_line_height() {
+            return m_Line_height; 
         }
 };
 

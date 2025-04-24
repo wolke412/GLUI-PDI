@@ -23,8 +23,10 @@ class Button: public Focusable, public Hoverable {
     public:
         click_callback_t cb_onclick;
 
-        Button(const std::string text, RGBA c): Element(Size(LAYOUT_FIT_CONTENT, LAYOUT_FIT_CONTENT), c )
+        Button(const std::string text, RGBA c): 
+            Element(Size{FitContent, FitContent}, c )
         {
+
             capabilities |= CClickable;            
 
             auto t = std::make_unique<Text>(text);  
@@ -32,13 +34,6 @@ class Button: public Focusable, public Hoverable {
 
             text_ = std::move(t);                   
         }
-
-        /**
-         * Remember kids: 
-         * Button's children must be Text and Img 
-         * OR
-         * A direct Element if a *FIXED SIZE*;
-         */
 
         Text* get_text() {
             return dynamic_cast<Text*>(children[0]);

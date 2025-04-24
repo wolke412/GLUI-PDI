@@ -79,7 +79,6 @@ public:
         for (auto s : stages) {
             if ( s->is_enabled() ) {
                 BP::handle(p, s);
-                int count = 49;
             }
         }
     }

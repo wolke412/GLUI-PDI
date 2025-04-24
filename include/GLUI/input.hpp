@@ -23,12 +23,14 @@ class Input {
 using input_callback_t = std::function<void(Input<T> &)>;
 
 public:
+    Input() = default;
+
     T m_value; 
     T m_default;
 
     input_callback_t cb_input_change;
 
-    void set_value( T s ) { m_value = s;  }
+    virtual void set_value( T s ) { m_value = s; }
     T *get_value() { return &m_value; }
 
     void onchange( input_callback_t c ) { cb_input_change = c; }

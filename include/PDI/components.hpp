@@ -6,6 +6,7 @@
  * extra shitty shit
  */
 #include <GLUI/components/Modal.hpp>
+#include <GLUI/components/InputRange.hpp>
 
 namespace Components {
 

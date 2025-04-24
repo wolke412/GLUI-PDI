@@ -31,7 +31,7 @@ int main()
 
     auto o = pdi.get_output();
 
-    pdi.update(); 
+    pdi.request_update(); 
 
 #if USE_GPU == 1
     pdi.get_output()->set_is_framebuffer(true);
@@ -46,12 +46,17 @@ int main()
         glui.loop_start();
 
         /**
+         * updates pic if needed;
+         */
+        pdi.update();
+
+        /**
          * 
          */
         glui.render();
 
         // isso aqui é para propositos de teste apenas.
-        glFinish();
+        // glFinish();
 
         Benchmark::capture();
 

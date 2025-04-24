@@ -8,4 +8,12 @@ namespace Collision {
              c->y <= r->y + r->height
            );
   }
+  bool is_rect_in_rect(Rect* inner, Rect* outer) {
+    return (
+      inner->x >= outer->x &&
+      inner->y >= outer->y &&
+      inner->x + inner->width <= outer->x + outer->width &&
+      inner->y + inner->height <= outer->y + outer->height
+    );
+  }
 }

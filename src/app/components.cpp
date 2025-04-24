@@ -1,10 +1,12 @@
 #include <PDI/components.hpp>
+#include <GLUI/components/Dropdown.hpp>
 
 
 void pdi_make_file_dropdown(PDI *pdi, Element *nav, Element *fcont);
 void pdi_make_transform_dropdown(PDI *pdi, Element *nav, Element *fcont);
 void pdi_make_segmentation_dropdown(PDI *pdi, Element *nav, Element *fcont);
 void pdi_make_filters_dropdown(PDI *pdi, Element *nav, Element *fcont);
+void pdi_make_morphology_dropdown(PDI *pdi, Element *nav, Element *fcont);
 
 /**
  *   nice cock 
@@ -77,6 +79,9 @@ void Components::layout( PDI* pdi ) {
 
     // return;
 
+
+
+
     /**
      * 
      */
@@ -84,6 +89,7 @@ void Components::layout( PDI* pdi ) {
     pdi_make_transform_dropdown( pdi, navbar, root );
     pdi_make_segmentation_dropdown( pdi, navbar, root );
     pdi_make_filters_dropdown( pdi, navbar, root );
+    pdi_make_morphology_dropdown( pdi, navbar, root );
 
 
     root->child(navbar);
@@ -156,6 +162,23 @@ void Components::layout( PDI* pdi ) {
     images->set_padding(  Padding(20) );
     sidebar->set_padding( Padding(20) );
 
+    Element *fixedCont = new Element( Size( 400, 500 ), TRANSPARENT );
+    fixedCont->set_padding(20);
+    fixedCont->set_border(Border(2, Opacity(WHITE, .3)));
+
+    // fixedCont->child( new InputRange( Size(Fill, 20), Opacity(WHITE, .1) ) );
+    auto list = std::vector<Dropdown::Option>({
+        Dropdown::Option{ .name="Elemento 1", .value=1 },
+        Dropdown::Option{ .name="Elemento 2", .value=2 },
+        Dropdown::Option{ .name="Elemento 3", .value=3 },
+        Dropdown::Option{ .name="Elemento 4", .value=4 },
+        Dropdown::Option{ .name="Elemento 5", .value=5 },
+        Dropdown::Option{ .name="Elemento 6", .value=6 },
+    });
+
+    fixedCont->child( new Selectbox( glui, list ) );
+
+    images->child(fixedCont);
 
     images->child( in_img_pile );
     images->child( out_img_pile );
@@ -326,34 +349,34 @@ void pdi_make_transform_dropdown(PDI *pdi, Element *nav, Element *fcont){
             [=](Focusable& f){
                 pdi->m_translate_x += 10;
                 pdi->m_translate_y += 10;
-                pdi->update();
+                pdi->request_update();
             } 
         },
         { "Rotacionar", 
             [=](Focusable& f){
                 // fmod is pretty damn bad
                 pdi->m_angle = fmod(pdi->m_angle + 10, 360) ;
-                pdi->update();
+                pdi->request_update();
             } 
         },
         { "Espelhar", 
             [=](Focusable& f){
                 pdi->m_mirror_axis = (Axis) ( ( (int)pdi->m_mirror_axis + 1 ) % 4);
-                pdi->update();
+                pdi->request_update();
             } 
         },
         { "Aumentar", 
             [=](Focusable& f){
                 pdi->m_scale_x += .1; 
                 pdi->m_scale_y += .1; 
-                pdi->update();
+                pdi->request_update();
             } 
         },
         { "Diminuir", 
             [=](Focusable& f){
                 pdi->m_scale_x -= .1; 
                 pdi->m_scale_y -= .1; 
-                pdi->update();
+                pdi->request_update();
             } 
         },
     };
@@ -409,9 +432,50 @@ void pdi_make_filters_dropdown(PDI *pdi, Element *nav, Element *fcont){
                 pdi->update_pipeline();
             } 
         },
+
+        { "Robinson", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Robinson( .7 ) );
+                pdi->update_pipeline();
+            } 
+        },
     };
 
     make_dropdown(pdi->get_glui(), nav, fcont, "Filtros", d, sizeof( d ) / sizeof(DropdownOption) );
+}
+
+void pdi_make_morphology_dropdown(PDI *pdi, Element *nav, Element *fcont){
+
+    DropdownOption d[] = {
+
+        { "Erodir", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Erosion(BP::MorphKernel::Cross) );
+                pdi->update_pipeline();
+            } 
+        },
+        { "Dilatar", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Dilation(BP::MorphKernel::Cross) );
+                pdi->update_pipeline();
+            } 
+        },
+
+        { "Abertura", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Opening(BP::MorphKernel::Cross) );
+                pdi->update_pipeline();
+            } 
+        },
+        { "Fechamento", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Closing(BP::MorphKernel::Cross) );
+                pdi->update_pipeline();
+            } 
+        },
+    };
+
+    make_dropdown(pdi->get_glui(), nav, fcont, "Morfologia", d, sizeof( d ) / sizeof(DropdownOption));
 }
 
 /**
@@ -516,7 +580,7 @@ Modal* pdi_make_open_file_modal( PDI* pdi ) {
             #endif
 
             pdi->reset_transform();
-            pdi->update();
+            pdi->request_update();
 
             /**
              * top 10 mensagens

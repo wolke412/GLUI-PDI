@@ -7,15 +7,17 @@
 
 
 
-
 Shader* shader_brightness  = nullptr;
 Shader* shader_threshold   = nullptr;
 Shader* shader_greyscale   = nullptr;
 Shader* shader_median = nullptr;
 Shader* shader_convolution = nullptr;
 //
-Shader* shader_sobel = nullptr;
+Shader* shader_sobel    = nullptr;
+Shader* shader_robinson = nullptr;
 
+Shader* shader_morph_dilation = nullptr;
+Shader* shader_morph_erosion  = nullptr;
 
 void PDI::load_shaders() {
     shader_brightness  = new Shader ("shaders/tex_rect.vs", "shaders/filters/brightness-contrast.fs");
@@ -24,7 +26,11 @@ void PDI::load_shaders() {
     shader_median      = new Shader ("shaders/tex_rect.vs", "shaders/filters/median-filter.fs");
     shader_convolution = new Shader ("shaders/tex_rect.vs", "shaders/filters/convolution.fs");
     //
-    shader_sobel = new Shader ("shaders/tex_rect.vs", "shaders/filters/sobel.fs");
+    shader_sobel    = new Shader ("shaders/tex_rect.vs", "shaders/filters/sobel.fs");
+    shader_robinson = new Shader ("shaders/tex_rect.vs", "shaders/filters/robinson.fs");
+    //
+    shader_morph_dilation = new Shader ("shaders/tex_rect.vs", "shaders/morphology/dilation.fs");
+    shader_morph_erosion  = new Shader ("shaders/tex_rect.vs", "shaders/morphology/erosion.fs");
 }
 
 void PDI::layout() {
@@ -78,19 +84,19 @@ void PDI::setup_hotkeys() {
     // CTRL + 0  -> RESETA TRANSFORMAÇÕES
     hk->registerhk('0', GLFW_MOD_CONTROL, [&](){
         reset_transform();
-        update();
+        request_update();
     });
 
     // CTRL + R         -> Rotação sentido horário 
     hk->registerhk('R', GLFW_MOD_CONTROL, [&](){
         m_angle -= 5;
-        update();
+        request_update();
     });
 
     // CTRL + SHIFT + R -> Rotação sentido anti-horário 
     hk->registerhk('R', GLFW_MOD_SHIFT | GLFW_MOD_CONTROL, [&](){
         m_angle += 5;
-        update();
+        request_update();
     });
 
     /**
@@ -98,19 +104,19 @@ void PDI::setup_hotkeys() {
      */
     hk->registerhk(GLFW_KEY_UP, GLFW_MOD_CONTROL, [&](){
         m_translate_y += 5;
-        update();
+        request_update();
     });
     hk->registerhk(GLFW_KEY_DOWN, GLFW_MOD_CONTROL , [&](){
         m_translate_y -= 5;
-        update();
+        request_update();
     });
     hk->registerhk(GLFW_KEY_LEFT, GLFW_MOD_CONTROL , [&](){
         m_translate_x -= 5;
-        update();
+        request_update();
     });
     hk->registerhk(GLFW_KEY_RIGHT, GLFW_MOD_CONTROL , [&](){
         m_translate_x += 5;
-        update();
+        request_update();
     });
 
     /**
@@ -118,7 +124,7 @@ void PDI::setup_hotkeys() {
      */
     hk->registerhk(GLFW_KEY_M, GLFW_MOD_CONTROL , [&](){
         m_mirror_axis = (Axis) ( ( (int)m_mirror_axis + 1 ) % 4);
-        update();
+        request_update();
 
     });
 
@@ -129,7 +135,7 @@ void PDI::setup_hotkeys() {
         m_scale_x += 0.05; 
         m_scale_y += 0.05; 
 
-        update();
+        request_update();
     });
     /**
      * CTRL + '='  -> Zoom Out
@@ -143,7 +149,7 @@ void PDI::setup_hotkeys() {
             m_scale_y = 0.01;
         }
 
-        update();
+        request_update();
     });
 }
 
@@ -151,7 +157,14 @@ void PDI::layout_pipeline_components() {
     Components::generate_pipeline_components(this);
 }
 
+void PDI::request_update() {
+    m_should_update = true;
+}
+
 void PDI::update() {
+    if ( ! m_should_update ) return;
+
+    m_should_update = false;
 
     /**
      * TODO: Make transform its own "PipelineStage"
@@ -165,7 +178,7 @@ void PDI::update() {
     auto winsz = glui->get_window_size();
     auto imgsz = output->get_size();
 
-    if ( pipeline.size() || pipeline.active_size() )  {
+    if ( pipeline.size() || pipeline.active_size() ) {
         pipeline.run(this);
 
         MultiPassFBO multipassFBO(imgsz->width, imgsz->height);
@@ -189,7 +202,7 @@ void PDI::update() {
 
 void PDI::update_pipeline() {
     layout_pipeline_components(); 
-    update();
+    request_update();
 }
 
 /**

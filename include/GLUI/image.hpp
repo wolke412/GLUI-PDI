@@ -24,6 +24,14 @@ class Image : public Element {
 
     public: 
         
+        Image( const std::string path, Rect r ) : Element( r, TRANSPARENT ) {
+            il = new ImageHandler( path );
+            if ( il->is_valid_image_path((std::string*)&path) ) {
+                std::cout<<"Loading " << path << std::endl;
+                il->load();
+            }
+        }
+    
         Image( ImageHandler * il, Rect r ): Element( r, WHITE ), il(il) {
             
             Text *t = new Text( "Selecione uma imagem" );
@@ -38,8 +46,8 @@ class Image : public Element {
 
             if ( il->is_loaded() ) {
 
-                tr->width  = il->get_size()->width;
-                tr->height = il->get_size()->height;
+                // tr->width  = il->get_size()->width;
+                // tr->height = il->get_size()->height;
 
                 // this is a very dumb way of achieving this
                 if ( il->is_framebuffer() ) {
