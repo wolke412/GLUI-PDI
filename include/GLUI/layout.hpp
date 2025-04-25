@@ -65,13 +65,39 @@ struct Padding {
 
 struct Edges {
     uint8_t top, right, bottom, left;
+
+    constexpr operator glm::vec4() const {
+        return glm::vec4(top, right, bottom, left);
+    }
+
+    void debug() const {
+        std::cout << "Edges (raw): "
+                  << "top=" << +top << ", "
+                  << "right=" << +right << ", "
+                  << "bottom=" << +bottom << ", "
+                  << "left=" << +left << "\n";
+        // std::cout << "Edges as glm::vec4: " << glm::to_string(glm::vec4(*this)) << "\n";
+    }
 };
 
 struct Corners {
-    uint8_t topright;
-    uint8_t topleft;
-    uint8_t bottomleft;
-    uint8_t bottomright;
+    uint8_t TL;
+    uint8_t TR;
+    uint8_t BR;
+    uint8_t BL;
+
+    operator glm::vec4() const {
+        return glm::vec4(TL, TR, BR, BL); 
+    }
+
+    void debug() const {
+        std::cout << "Corners (raw): "
+                  << "TL=" << +TL << ", "
+                  << "TR=" << +TR << ", "
+                  << "BR=" << +BR << ", "
+                  << "BL=" << +BL << "\n";
+        // std::cout << "Corners as glm::vec4: " << glm::to_string(glm::vec4(*this)) << "\n";
+    }
 };
 
 struct Border
@@ -81,25 +107,38 @@ struct Border
     uint8_t bottom;
     uint8_t left;
 
+    // Edges edges;
     Corners radius;
+
     RGBA color;
+
     Border(uint8_t all, RGBA color) : top(all), right(all), bottom(all), left(all), color(color) {};
-    Border(uint8_t t, uint8_t r, uint8_t b, uint8_t l, RGBA color) : top(t), right(r), bottom(b), left(l), color(color) {};
+    Border(uint8_t t, uint8_t r, uint8_t l, uint8_t b, RGBA color) : top(t), right(r), bottom(b), left(l), color(color) {};
+
+    Edges edges() {
+       return Edges{top, right, bottom, left}; 
+    }
 
     bool exists() {
         return ( top + right + left + bottom ) > 0;
     }
 
     void set_radius( uint8_t r ) {
-        radius.bottomleft  = r;
-        radius.bottomright = r;
-        radius.topleft     = r;
-        radius.topright    = r;
+        radius.BL = r;
+        radius.BR = r;
+        radius.TL = r;
+        radius.TR = r;
     } 
 
     void set_radius( Corners r ) {
         radius = r;
-    }
+    } 
+    
+    // void set_color ( ) {
+    // } 
+
+    // void set_color ( RGBA c ) {
+    // }
 
     RGBA get_color() { return color; }
     void set_color( RGBA c ) {

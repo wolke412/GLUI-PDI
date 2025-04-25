@@ -55,6 +55,33 @@ int main()
          */
         glui.render();
 
+        Rect r ( 100, 300, 50, 100);
+        Rect r2( 100, 440, 200, 200);
+        Rect r3( 500, 300, 100, 400);
+
+        Border b ( 1, WHITE );
+        Border b2( 10, 10, 10, 0, WHITE );
+        Border b3( 0, 0, 0, 0, WHITE );
+        b.set_radius(10);
+        b2.set_radius({40, 40, 0, 0});
+        b3.set_radius({0, 10, 20, 30});
+
+        auto w = glui.get_window_size();
+
+        b.edges().debug();
+        b2.edges().debug();
+        b3.edges().debug();
+        b.radius.debug();
+        b2.radius.debug();
+        b3.radius.debug();
+
+        draw_rounded_quad( &r ,  WHITE, b.radius,  b.edges() , &w );
+        draw_rounded_quad( &r2,  WHITE, b2.radius, b2.edges(), &w );
+        draw_rounded_quad( &r3,  WHITE, b3.radius, b3.edges(), &w );
+    
+
+
+
         // isso aqui é para propositos de teste apenas.
         // glFinish();
 

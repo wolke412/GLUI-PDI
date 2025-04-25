@@ -34,7 +34,7 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window);
 /**
  * 
  */
-void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, Size* window);
+void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, glm::vec4 widths, Size* window);
 
 
 /**

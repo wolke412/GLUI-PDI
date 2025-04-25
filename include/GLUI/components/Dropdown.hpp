@@ -146,8 +146,14 @@ public:
 
             m_options_buttons.push_back( btn_drop );
 
+            /**
+             * 
+             */
             int w = TextCalcRenderWidth( o.name, btn_drop->get_text()->get_scale() );
-            if ( w > max_width ) max_width = w;
+
+            if ( w > max_width ) {
+                max_width = w;
+            }
 
             glui->push_fixed(m_dropdown);
         }
@@ -155,6 +161,7 @@ public:
         TEST_apply_stylesheet( m_dropdown->get_children()[0], &m_stylesheet.active_option );
 
         static int CHEVRON_SIZE = 24;
+
         child( new Image("public/chevron-down.png", Rect( Coord(max_width + Spacing::MediumS, 0), Size(CHEVRON_SIZE) )) );
         
         auto t = get_text();

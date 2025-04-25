@@ -226,7 +226,7 @@ void draw_circle( Rect *r, RGBA c , Size* window ) {
 
 
 
-void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, Size* window) {
+void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, glm::vec4 border_widths, Size* window) {
 
     float vertices[8];
 
@@ -248,9 +248,15 @@ void draw_rounded_quad( Rect *r, RGBA c, glm::vec4 corners, Size* window) {
 
     // TODO
     rounded_rect_shader->setFloat4("buttonColor", c.R, c.G, c.B, c.A);
-    rounded_rect_shader->setFloat4("corners", corners);
-    rounded_rect_shader->setFloat2("size", r->width, r->height );
-    rounded_rect_shader->setFloat2("offset", r->x, window->height - r->height - r->y );
+    rounded_rect_shader->setFloat4("u_border_widths", border_widths);
+    rounded_rect_shader->setFloat4("u_color_top",    c);
+    rounded_rect_shader->setFloat4("u_color_right",  c);
+    rounded_rect_shader->setFloat4("u_color_bottom", c);
+    rounded_rect_shader->setFloat4("u_color_left",   c);
+
+    rounded_rect_shader->setFloat4("u_corners", corners);
+    rounded_rect_shader->setFloat2("u_size", r->width, r->height );
+    rounded_rect_shader->setFloat2("u_offset", r->x, window->height - r->height - r->y );
 
     // Draw the quad as two triangles
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);

@@ -36,6 +36,10 @@ typedef struct RGBA {
     constexpr RGBA( float r, float g, float b ): R(r), G(g), B(b), A(1.0) {}
     constexpr RGBA( RGB rgb, float a ): R(rgb.R), G(rgb.G), B(rgb.B), A(a) {}
 
+    constexpr operator glm::vec4() {
+        return glm::vec4(R,G,B,A);
+    }
+
     RGB to_rgb() const {
         return RGB(R, G, B);
     }
