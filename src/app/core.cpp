@@ -2,12 +2,19 @@
 #include <PDI/blueprints.hpp>
 #include <PDI/theme.hpp>
 #include <GLUI/components/InputRange.hpp>
+#include <GLUI/components/Dropdown.hpp>
 
 
 void BP::handle( PDI *p, BP::Fn* f) {
     f->apply(p);
 }
 
+Element* label_field_horizontal( std::string label, Element* field ) {
+    auto r = new Row(Size(Fill, FitContent), Alignment::Even, Alignment::Center);
+    r->child(new Text(label, 20, Opacity(WHITE, .6)));
+    r->child( field );
+    return r;
+}
 
 
 /**
@@ -31,42 +38,31 @@ void BP::Brightness::apply( PDI *pdi) const {
 }
 
 Element* BP::Brightness::build (PDI *pdi) {
-
-    auto p = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT);
-
+    auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     p->set_padding(20);
-    p->child(new Text( "Brilho e Contraste" ));
 
-    auto b_lb = new Text("Brilho");
-    auto b_in = new TextInput(LAYOUT_FILL);
-
-    auto c_lb = new Text("Contraste");
-    auto c_in = new TextInput(LAYOUT_FILL);
-
-    b_in->set_value( std::to_string(brightness) );
-    c_in->set_value( std::to_string(contrast  ) );
-
-    b_in->onchange( [&, pdi](Input<std::string>& i){
-        float b = std::stof( *i.get_value() );
-        brightness = b;
+    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    auto c_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    t_in->set_size( Size( 200, 20 ) );
+    c_in->set_size( Size( 200, 20 ) );
+    t_in->onchange([&, pdi](Input<float> &i) {
+        brightness = *i.get_value();
         pdi->request_update();
     });
-
-    c_in->onchange( [&, pdi](Input<std::string>& i){
-        float c = std::stof( *i.get_value() );
-        contrast = c;
+    t_in->set_value(brightness);
+    c_in->onchange([&, pdi](Input<float> &i) {
+        contrast = *i.get_value();
         pdi->request_update();
     });
+    c_in->set_range( 0, 2 );
+    c_in->set_value(contrast);
 
-    p->child( b_lb );
-    p->child( b_in );
-
-    p->child( new Element(Rect( Size(LAYOUT_FILL, 1) ), RGBA(.5,.4,.4)) );
-
-    p->child( c_lb );
-    p->child( c_in );
+    p->child(label_field_horizontal( "Brilho",    t_in ));
+    p->child(label_field_horizontal( "Contraste", c_in ));
 
     return p;
+
+
 }
 
 void BP::Threshold::apply(PDI* pdi) const {
@@ -81,28 +77,21 @@ void BP::Threshold::apply(PDI* pdi) const {
     });
 }
 
-
 Element* BP::Threshold::build (PDI *pdi) {
-    std::cout << "Rendering threshold"  << std::endl;
-    auto p = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
+    auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     p->set_padding(20);
-    p->child(new Text( "Threshold" ));
 
-    auto t_lb = new Text("Threshold");
-    auto t_in = new TextInput(LAYOUT_FILL);
-
-    t_in->set_value( std::to_string(threshold) );
-
-    t_in->onchange( [&, pdi](Input<std::string>& i){
-        float b = std::stof( *i.get_value() );
-        threshold = b;
+    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    t_in->set_size( Size( 200, 20 ) );
+    t_in->onchange([&, pdi](Input<float> &i) {
+        threshold = *i.get_value();
         pdi->request_update();
     });
+    t_in->set_value(threshold);
 
-    p->child( new Element(Rect( Size(LAYOUT_FILL, 1) ), RGBA(.4,.4,.4)) );
+    auto r = label_field_horizontal( "Limiar", t_in );
 
-    p->child( t_lb  );
-    p->child( t_in );
+    p->child(r);
 
     return p;
 
@@ -121,11 +110,13 @@ void BP::Greyscale::apply(PDI *pdi) const {
         m->apply(tex); 
     });
 }
+
 std::string ftos_l(float value, int precision) {
     char buffer[64];
     std::snprintf(buffer, sizeof(buffer), ("%." + std::to_string(precision) + "f").c_str(), value);
     return std::string(buffer);
 }
+
 Element* BP::Greyscale::build (PDI *pdi) {
     auto p = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     auto r = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
@@ -221,32 +212,32 @@ void BP::Filter::apply(PDI *pdi) const {
 }
 
 Element* BP::Filter::build (PDI *pdi) {
+
     std::cout << "Rendering Filter"  << std::endl;
-    auto p = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
+
+    auto p = new Pile( Size(Fill, FitContent), 10, TRANSPARENT );
+
     p->set_padding(20);
 
     switch ( c ) {
     case LowPass::Median:
     {
-        p->child(new Text("Filtro Mediana"));
 
-        auto t_lb = new Text("Kernel Size");
-        auto t_in = new TextInput(LAYOUT_FILL);
-        t_in->set_value(std::to_string(kernel_size));
-        t_in->onchange([&, pdi](Input<std::string> &i)
-                       {
-                    auto v = *i.get_value();
-                    v = v.empty() ? "0" : v;
+        auto list = std::vector<Dropdown::Option>({
+            Dropdown::Option{ .name="3x3", .value=3 },
+            Dropdown::Option{ .name="5x5", .value=5 },
+            Dropdown::Option{ .name="7x7", .value=7 },
+        });
+        auto s = new Selectbox( pdi->get_glui(), list );
+        auto r = new Row(Size(Fill, FitContent), Alignment::Even, Alignment::Center);
+        r->child(new Text("Kernel Size", 20, Opacity(WHITE, .6)));
+        r->child( s );
+        s->onchange([&, pdi](Input<int> &i) {
+            kernel_size = *i.get_value();
+            pdi->request_update(); 
+        });
 
-                    int b = std::stof( v );
-
-                    kernel_size = b;
-                    pdi->request_update(); });
-
-        p->child(new Element(Rect(Size(LAYOUT_FILL, 1)), RGBA(.4, .4, .4)));
-
-        p->child(t_lb);
-        p->child(t_in);
+        p->child(r);
         break;
     }
 
@@ -284,24 +275,22 @@ void BP::Sobel::apply(PDI *pdi) const
 
 Element* BP::Sobel::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    auto t_lb = new Text("Threshold");
-    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
-
     p->set_padding(20);
-    p->child(new Text("Filtro de Sobel"));
 
+    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    t_in->set_size( Size( 200, 20 ) );
     t_in->onchange([&, pdi](Input<float> &i) {
         t = *i.get_value();
         pdi->request_update();
     });
-
-    p->child(new Element(Rect(Size(LAYOUT_FILL, 1)), RGBA(.4, .4, .4)));
-
-    p->child(t_lb);
-    p->child(t_in);
-
     t_in->set_value(t);
+
+    auto r = label_field_horizontal( "Limiar", t_in );
+
+    p->child(r);
+
     return p;
+
 }
 
 
@@ -322,23 +311,20 @@ void BP::Robinson::apply(PDI *pdi) const
 
 Element* BP::Robinson::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    auto t_lb = new Text("Threshold");
-    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
-
     p->set_padding(20);
-    p->child(new Text("Filtro de Robinson"));
 
+    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    t_in->set_size( Size( 200, 20 ) );
     t_in->onchange([&, pdi](Input<float> &i) {
         t = *i.get_value();
         pdi->request_update();
     });
-
-    p->child(new Element(Rect(Size(LAYOUT_FILL, 1)), RGBA(.4, .4, .4)));
-
-    p->child(t_lb);
-    p->child(t_in);
-
     t_in->set_value(t);
+
+    auto r = label_field_horizontal( "Limiar", t_in );
+
+    p->child(r);
+
     return p;
 }
 
@@ -365,8 +351,8 @@ void BP::Erosion::apply(PDI *pdi) const
 
 Element* BP::Erosion::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    p->set_padding(20);
-    p->child(new Text("Erosão"));
+    // p->set_padding(20);
+    // p->child(new Text("Erosão"));
     return p;
 }
 
@@ -387,8 +373,8 @@ void BP::Dilation::apply(PDI *pdi) const
 
 Element* BP::Dilation::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    p->set_padding(20);
-    p->child(new Text("Dilatação"));
+    // p->set_padding(20);
+    // p->child(new Text("Dilatação"));
     return p;
 }
 
@@ -412,8 +398,8 @@ void BP::Opening::apply(PDI *pdi) const
 
 Element* BP::Opening::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    p->set_padding(20);
-    p->child(new Text("Abertura"));
+    // p->set_padding(20);
+    // p->child(new Text("Abertura"));
     return p;
 }
 
@@ -437,7 +423,7 @@ void BP::Closing::apply(PDI *pdi) const
 
 Element* BP::Closing::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    p->set_padding(20);
-    p->child(new Text("Fechamento"));
+    // p->set_padding(20);
+    // p->child(new Text("Fechamento"));
     return p;
 }

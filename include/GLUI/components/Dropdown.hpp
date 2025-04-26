@@ -22,45 +22,56 @@ namespace Dropdown
         Stylesheet active_button;
     };
 
-    Styles get_default_styles() {
-        return Styles {
+    const Styles get_default_styles = Styles {
            .list = Stylesheet {
                 .background_color = RGBA(.08, .10, .15),
-                .border = Border( 0, 1, 1, 1, WHITE ),
+                .border = Border( 0, 1, 1, 1, Opacity(WHITE, .2), Corners( 0, 0, 10, 10 ) ),
                 .padding = Padding(Spacing::Small),
            }, 
 
            .option = Stylesheet {
                 .background_color = TRANSPARENT,
                 .foreground_color = Opacity(WHITE, .6),
-                .padding = Padding(Spacing::Small, Spacing::MediumS)
+                .border = Border(0, TRANSPARENT, Corners(6)),
+                .padding = Padding(Spacing::Small, Spacing::MediumS),
+                .font_size = 18,
            },
 
            .active_option = Stylesheet {
-                .background_color = Opacity(WHITE, .1),
+                .background_color = Opacity(WHITE, .12),
                 .foreground_color = Opacity(WHITE, 1.),
-                .border = Border(0, 0, 0, 4, RGBA(.17, .23, .78, 1.)),
-                .padding = Padding(Spacing::Small, Spacing::MediumS)
+                .border = Border(0, 0, 0, 4, RGBA(.17, .23, .78, 1.), Corners(6)),
+                .padding = Padding(Spacing::Small, Spacing::MediumS),
+                .font_size = 18,
            },
 
            .button = Stylesheet {
-                .background_color = Property( DARKGREY ),
+                .background_color = RGBA(.08, .10, .15),
                 .foreground_color = Property( WHITE ),
-                .border = Border(1, Opacity(WHITE, .2)),
-                .padding = Padding( Spacing::Small, Spacing::MediumS )
+                .border = Border(1, Opacity(WHITE, .2), Corners(4)),
+                .padding = Padding( Spacing::Small, Spacing::MediumS ),
+                .font_size = 18,
+           }, 
+
+           .active_button = Stylesheet {
+                .background_color = RGBA(.08, .10, .15),
+                .foreground_color = Property( WHITE ),
+                .border = Border(1,1,0,1, Opacity(WHITE, .2), Corners(10, 10, 0, 0)),
+                .padding = Padding( Spacing::Small, Spacing::MediumS ),
+                .font_size = 18,
            }, 
         };
-    }
+    
 }
 
 /**
  *  Class that generates a SelectBox input
  */
-class Selectbox: public Button, Input<int> 
+class Selectbox: public Button, public Input<int> 
 {
 private:
     Element* m_dropdown = nullptr;
-    Dropdown::Styles m_stylesheet = Dropdown::get_default_styles();
+    Dropdown::Styles m_stylesheet = Dropdown::get_default_styles;
 
     int m_selected = 0;
 
@@ -89,14 +100,10 @@ public:
     Selectbox( GLUI *glui, std::vector<Dropdown::Option> opts ): 
         Button("Sem opções", TRANSPARENT), 
         Element(Size(FitContent), TRANSPARENT),
-        m_stylesheet(Dropdown::get_default_styles()),
         m_options(opts)
     {
 
-        set_padding(m_stylesheet.button.padding);
-        set_border(m_stylesheet.button.border);
-        get_text()->set_font_size(18);
-        get_text()->set_foreground_color(m_stylesheet.button.foreground_color);
+        TEST_apply_stylesheet( this , &m_stylesheet.button);
 
         if ( opts.size() ) {
             get_text()->set_text( opts[0].name );
@@ -108,8 +115,14 @@ public:
         m_dropdown->set_border(  list_style.border  );
         m_dropdown->hide();
 
-        onfocus([=](Focusable &f) { m_dropdown->show(); });
-        onblur([=](Focusable &f ) { m_dropdown->hide(); });
+        onfocus([=](Focusable &f) { 
+            m_dropdown->show(); 
+            TEST_apply_stylesheet( (Element *)&f, &m_stylesheet.active_button);
+        });
+        onblur([=](Focusable &f ) {
+            TEST_apply_stylesheet((Element *)&f, &m_stylesheet.button);
+             m_dropdown->hide(); 
+        });
 
         auto c_opt = m_options.size();
         auto opt_style = m_stylesheet.option;
@@ -127,7 +140,7 @@ public:
             });
 
             btn_drop->set_rect(Size(Fill, FitContent));
-            btn_drop->get_text()->set_font_size(18);
+            // btn_drop->get_text()->set_font_size(18);
             get_text()->set_foreground_color(m_stylesheet.button.foreground_color);
 
             m_dropdown->child(btn_drop);

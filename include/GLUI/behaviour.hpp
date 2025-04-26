@@ -184,7 +184,7 @@ class Hoverable : public virtual Element {
     hover_callback_t cb_leave;
 
     RGBA hover_background_color = BLACK;
-    RGBA hover_foreground_color = BLACK;
+    RGBA hover_foreground_color = WHITE;
 
 
   public:

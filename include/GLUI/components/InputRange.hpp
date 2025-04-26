@@ -13,8 +13,8 @@ private:
 
    int track_width = 4;
 
-   float min = 0; 
-   float max = 1;
+   float m_min = 0; 
+   float m_max = 1;
 
    Element * m_handle_element = nullptr;
 
@@ -36,8 +36,10 @@ public:
         h->ondragmove([=](Draggable &d) {
             float truew = ghost_track->get_true_rect()->width - handle_size.width;
             float percentage = (float)d.get_rect()->x / truew;
+            float range_value = m_min + (m_max - m_min) * percentage; 
 
-            set_value( percentage );
+            set_value( range_value );
+
             changed();
 
             // d.get_true_rect()->debug("HANDLE:: ");
@@ -62,10 +64,14 @@ public:
     }
 
     void set_value(float v) override {
-       m_value = std::clamp( v, min, max );
+       m_value = std::clamp( v, m_min, m_max );
     //    calc_handle_position();
     }
 
+    void set_range(float min, float max) {
+        m_min = min;
+        m_max = max;
+    }
 
     Element* TEMP_get_handle() { return m_handle_element; }
 

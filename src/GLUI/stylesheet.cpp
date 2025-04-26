@@ -6,4 +6,5 @@ void TEST_apply_stylesheet( Element* to, Stylesheet* s ) {
     to->set_border( s->border );
     to->set_background_color( s->background_color );
     to->set_foreground_color( s->foreground_color );
+    to->set_font_size( s->font_size );
 }

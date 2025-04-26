@@ -22,6 +22,7 @@ public:
     ~MultiPassFBO();
 
     void process(GLuint inputTexture, const std::vector<FnShader> &passes, Size* win, GLuint outputFBO );
+    void process(GLuint inputTexture, const std::vector<FnShader> &passes, std::vector<float> times, Size* win, GLuint outputFBO );
     void setup();
 
     void get_framebuffer_quad( float* buffer );

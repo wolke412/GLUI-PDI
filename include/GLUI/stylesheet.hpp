@@ -7,6 +7,7 @@
 
 template <typename T, int TIME_MS = 0>
 struct Property {
+    bool modified = false;
     T value;
     int time = TIME_MS;
     float progress = 0.0;
@@ -15,6 +16,20 @@ struct Property {
     Property( T v, int time ): value(v), time(time){}
 
     operator T() const {
+        return value;
+    }
+    Property& operator=(const T& new_value) {
+        modified = true;
+        value = new_value;
+        return *this;
+    }
+
+    bool is_modified() {
+        return modified;
+    }
+
+    T consume()  {
+        modified = false;
         return value;
     }
 
@@ -47,6 +62,7 @@ struct Stylesheet {
     Property<RGBA,    0>   foreground_color = WHITE;
     Property<Border,  0>   border = Border(0, TRANSPARENT);
     Property<Padding, 0>   padding = Padding(0);
+    Property<int,     0>   font_size =  24;
 };
 
 struct HoverableStylesheet {};

@@ -48,11 +48,11 @@ void Components::layout( PDI* pdi ) {
      * ============================================================
      * 
      */
-    // Row* ROW_1 = new Row( Size( FitContent, FitContent), 100, TRANSPARENT );
-    // Pile* PILE_1 = new Pile( Size( FitContent, FitContent), 20, TRANSPARENT );
+    // Row* ROW_1   = new Row(  Size( FitContent, FitContent), 100, TRANSPARENT );
+    // Pile* PILE_1 = new Pile( Size( FitContent, FitContent),  20, TRANSPARENT );
 
     // ROW_1->set_border( Border(2, RGBA(1,0,0)));
-    // PILE_1->set_border(Border(2, RGBA(1,0,0)));
+    // PILE_1->set_border(Border(2, RGBA(1,1,0)));
 
     // ROW_1->set_padding(Padding(2));
     // PILE_1->set_padding(Padding(2));
@@ -78,8 +78,6 @@ void Components::layout( PDI* pdi ) {
     // root->child( ROW_1 );
 
     // return;
-
-
 
 
     /**
@@ -162,9 +160,9 @@ void Components::layout( PDI* pdi ) {
     images->set_padding(  Padding(20) );
     sidebar->set_padding( Padding(20) );
 
-    Element *fixedCont = new Element( Size( 400, 500 ), TRANSPARENT );
-    fixedCont->set_padding(20);
-    fixedCont->set_border(Border(2, Opacity(WHITE, .3)));
+    // Row *fixedCont = new Row( Size( 400, 500 ), Alignment::Even, Alignment::Center );
+    // fixedCont->set_padding(20);
+    // fixedCont->set_border(Border(2, Opacity(WHITE, .3)));
 
     // fixedCont->child( new InputRange( Size(Fill, 20), Opacity(WHITE, .1) ) );
     auto list = std::vector<Dropdown::Option>({
@@ -176,9 +174,10 @@ void Components::layout( PDI* pdi ) {
         Dropdown::Option{ .name="Elemento 6", .value=6 },
     });
 
-    fixedCont->child( new Selectbox( glui, list ) );
+    // fixedCont->child( new Selectbox( glui, list ) );
+    // fixedCont->child( new Element( Size(20, 20), RGBA(1, 1, 0) ) );
 
-    images->child(fixedCont);
+    // images->child(fixedCont);
 
     images->child( in_img_pile );
     images->child( out_img_pile );
@@ -204,16 +203,39 @@ void Components::generate_pipeline_components(PDI *pdi) {
 
 Element* make_pipeline_stage( PDI *pdi, Stage s, int index ) {
 
-    auto p = new Pile( Rect( 0, 0, LAYOUT_FILL,LAYOUT_FIT_CONTENT ), 20, Theme::BG_SHADE_300 );
-    p->set_padding( 6 );
+    auto p = new Pile( Size(Fill, FitContent), 0, Theme::BG_SHADE_300 );
+    auto container_s = Stylesheet {
+        .background_color = Theme::BG_SHADE_300,
+        .border = Border( 1, Opacity(WHITE, .1), Corners(10) )
+    };
 
-    auto opt_row = new Row( Rect( Size(LAYOUT_FILL, LAYOUT_FIT_CONTENT ) ), 10, TRANSPARENT);
+    auto heading = new Row( Size(Fill, FitContent ), Alignment::Even, Alignment::Center);
+    auto heading_s = Stylesheet {
+        .background_color = Theme::BG_SHADE_300,
+        .border = Border(0, TRANSPARENT, Corners(10, 10, 0, 0)),
+        .padding = Padding(Spacing::Medium)
+    };
 
-    auto xb = new Button("x", RGBA(.8, .25, .12)); 
+    TEST_apply_stylesheet( heading, &heading_s ); 
+    TEST_apply_stylesheet( p, &container_s); 
+
+    auto options = new Row( Size(FitContent, FitContent), Spacing::Small);
+    options->set_alignment_y( Alignment::Center );
+
+    auto xb = new Button( "x", Theme::ERROR ); 
+    auto xbs = Stylesheet{
+        .background_color = Theme::ERROR,
+        .foreground_color = WHITE,
+        .border = Border( 1, 1, 4, 1, Opacity(BLACK, .2), Corners(4) ),
+        .padding = Padding( 2, 8 ),
+        .font_size = 16
+    };
+    TEST_apply_stylesheet( xb, &xbs);
+
     auto en = new Checkbox( 20 ); 
 
     en->set_background_color(TRANSPARENT);
-    en->set_border( Border(1, Theme::BG_SHADE_400) );
+    en->set_border( Border(2, Theme::BG_SHADE_400, Corners(4)) );
 
     en->set_value( s->is_enabled() );
 
@@ -234,11 +256,12 @@ Element* make_pipeline_stage( PDI *pdi, Stage s, int index ) {
         pdi->update_pipeline();
     });
 
-    xb->set_padding( Padding(6, 12 ) );
-    opt_row->child(en);
-    opt_row->child(xb);
+    options->child(en);
+    options->child(xb);
+    heading->child( new Text( s->get_title() ) );
+    heading->child( options );
 
-    p->child( opt_row );
+    p->child( heading );
     p->child( s->render(pdi) );
 
     return p;

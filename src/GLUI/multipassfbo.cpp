@@ -40,6 +40,10 @@ void MultiPassFBO::swap_buffers() {
 
 // process passes
 void MultiPassFBO::process(GLuint inputTexture, const std::vector<FnShader> &passes, Size* win, GLuint outputFBO ) {
+    std::vector<float> times(passes.size());
+    process(inputTexture, passes, times, win, outputFBO);
+}
+void MultiPassFBO::process(GLuint inputTexture, const std::vector<FnShader> &passes, std::vector<float> times, Size* win, GLuint outputFBO ) {
 
     readIndex = 0;
     writeIndex = 1;
@@ -62,6 +66,8 @@ void MultiPassFBO::process(GLuint inputTexture, const std::vector<FnShader> &pas
         glGetQueryObjectuiv(query, GL_QUERY_RESULT, &time);
         std::cout << "Pass " << i << " time: " << (time / 1000000.0) << " ms" << std::endl;
         glDeleteQueries(1, &query);
+
+        times.push_back( time / 1000000.0 );
 
         swap_buffers();
         tex = ping_pong_tex[readIndex];

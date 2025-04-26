@@ -65,6 +65,13 @@ class Text : public Element {
             m_Line_height = m_Font_size;
         }
 
+        Text(const std::string text, int size, RGBA fg): m_Text(text), Element() {
+            set_foreground_color(fg);
+            set_font_size(size);
+            rect.height = Layout::FitContent;
+            rect.width  = Layout::FitContent;
+        }
+
         Text(const std::string text, RGBA fg): m_Text(text), Element() {
             set_foreground_color(fg);
 
@@ -81,7 +88,7 @@ class Text : public Element {
 
             auto tr = get_true_rect();
 
-            // draw_quad(*tr, RGB(.5, .2, .2), window_size);
+            // draw_quad(*tr, RGBA(.5, .2, .2, .4), window_size);
             RenderText(m_Text, Coord(tr->x, tr->y), m_Scale, fg_color, window_size);
         }
 

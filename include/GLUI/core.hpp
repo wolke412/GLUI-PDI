@@ -384,14 +384,31 @@ public:
     m_hover_path.clear();
 
     get_collision_path( shadow_root, &m_hover_path );
+
+    bool has_interactable = false;
     
     auto i = 0;
     for ( auto c : m_hover_path ) {
+
+      if ( c->is_hidden() ) {
+        continue;
+      }
+
+      if ( c->has_capability( CClickable ) || c->has_capability(CFocusable) || c->has_capability(CDraggable) ) {
+        has_interactable = true;
+      }
       if ( auto h = dynamic_cast<Hoverable*>(c) ) {
         h->mouse_enter();
         i++;
       }
     }    
+
+    if ( has_interactable ) {
+      GLFWcursor* handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
+      glfwSetCursor(window, handCursor);
+    }else {
+      glfwSetCursor(window, NULL);
+    }
 
     // std::cout << "COLLISION PATH ::SIZE= " << m_hover_path.size() << std::endl;
     // std::cout << "COLLISION PATH ::HOVERABLE= " << i << std::endl;
@@ -402,6 +419,7 @@ public:
       auto children = el->get_children();
 
       for ( auto child : children  ) {
+        if ( child->is_hidden()) continue;
 
         if (Collision::is_point_in_rect( &mouse.at, child->get_true_rect() ))  {
 

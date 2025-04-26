@@ -183,8 +183,7 @@ private:
 public:
     Checkbox(__RECT_TYPE__ fixed_width) : Element(Size(fixed_width), BLACK)
     {
-        set_padding(Padding(10, 20));
-        set_background_color(BLACK);
+        // set_background_color(TRANSPARENT);
         set_border(Border( 1, LIGHTGREY ));
 
         ontoggle( [this]( Toggable& t ) {
@@ -215,6 +214,9 @@ public:
     void draw(Size *window) override
     {
 
+        // Element::draw(window);
+        // return;
+
         auto tr = get_true_rect();
 
         auto background = bg_color;
@@ -228,8 +230,8 @@ public:
         draw_quad( get_true_rect(), background, window );
 
         if ( m_value ) {
-            auto little_circle = get_true_rect()->to_scaled(-6);
-            draw_circle( &little_circle, active_border_color, window );
+            // auto little_circle = get_true_rect()->to_scaled(-6);
+            // draw_circle( &little_circle, active_border_color, window );
         }
 
         if ( m_focus )

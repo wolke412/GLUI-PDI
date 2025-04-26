@@ -66,7 +66,10 @@ struct Padding {
 struct Edges {
     uint8_t top, right, bottom, left;
 
-    constexpr operator glm::vec4() const {
+    Edges( uint8_t all ) : top(all), right(all), bottom(all), left(all) {}
+    Edges( uint8_t t, uint8_t r, uint8_t b, uint8_t l ) : top(t), right(r), bottom(b), left(l) {}
+
+    operator glm::vec4() const {
         return glm::vec4(top, right, bottom, left);
     }
 
@@ -81,10 +84,14 @@ struct Edges {
 };
 
 struct Corners {
-    uint8_t TL;
-    uint8_t TR;
-    uint8_t BR;
-    uint8_t BL;
+    uint8_t TL = 0;
+    uint8_t TR = 0;
+    uint8_t BR = 0;
+    uint8_t BL = 0;
+
+    Corners(){}
+    Corners( uint8_t all ) : TL(all), TR(all), BL(all), BR(all) {}
+    Corners( uint8_t t, uint8_t r, uint8_t b, uint8_t l ) : TR(t), TL(r), BL(b), BR(l) {}
 
     operator glm::vec4() const {
         return glm::vec4(TL, TR, BR, BL); 
@@ -97,6 +104,10 @@ struct Corners {
                   << "BR=" << +BR << ", "
                   << "BL=" << +BL << "\n";
         // std::cout << "Corners as glm::vec4: " << glm::to_string(glm::vec4(*this)) << "\n";
+    }
+
+    uint16_t sum() const {
+        return TL + TR + BR + BL;
     }
 };
 
@@ -113,7 +124,12 @@ struct Border
     RGBA color;
 
     Border(uint8_t all, RGBA color) : top(all), right(all), bottom(all), left(all), color(color) {};
-    Border(uint8_t t, uint8_t r, uint8_t l, uint8_t b, RGBA color) : top(t), right(r), bottom(b), left(l), color(color) {};
+    Border(uint8_t all, RGBA color, Corners radii) : 
+        top(all), right(all), bottom(all), left(all), color(color), radius(radii){};
+    Border(uint8_t t, uint8_t r, uint8_t b, uint8_t l, RGBA color ) : 
+        top(t), right(r), bottom(b), left(l), color(color) {};
+    Border(uint8_t t, uint8_t r, uint8_t b, uint8_t l, RGBA color, Corners radii) : 
+        top(t), right(r), bottom(b), left(l), color(color), radius(radii){};
 
     Edges edges() {
        return Edges{top, right, bottom, left}; 
@@ -121,6 +137,10 @@ struct Border
 
     bool exists() {
         return ( top + right + left + bottom ) > 0;
+    }
+
+    bool is_rounded() {
+        return radius.sum() > 0;
     }
 
     void set_radius( uint8_t r ) {
@@ -146,7 +166,8 @@ struct Border
     }
 };
 
-enum Alignment {
+enum class Alignment {
+    None = 0,
     Start,
     Center,
     End,
@@ -165,7 +186,7 @@ enum ModifiableProperty {
     FgColor,
 };
 
-enum ElementCapabilities {
+enum ElementCapabilities : int{
     CNone        = 0,
     CClickable   = 1 << 0,  
     CFocusable   = 1 << 1,  
@@ -184,6 +205,7 @@ public:
 
     RGBA bg_color = BLACK;
     RGBA fg_color = WHITE;
+    uint8_t font_size = 24;
 
     Padding padding = Padding(0);
     Border border   = Border(0, BLACK);
@@ -206,7 +228,6 @@ protected:
 
     LayoutMode lm;
 
-
     std::vector<Element*> children;
 
     bool hidden  = false;
@@ -217,7 +238,7 @@ public:
     explicit Element(Size s, RGBA c) : id(Element::getid()), lm(LayoutMode::Auto), rect(Rect(0, 0, s.width, s.height)), bg_color(c) {}
     explicit Element(Rect r, RGBA c) : id(Element::getid()), lm(LayoutMode::Fixed), rect(r), bg_color(c) {}
     explicit Element() :               id(Element::getid()), lm(LayoutMode::Auto), rect(Size(LAYOUT_FILL)) {
-        std::cout <<  "CREATING FROM EMPTY CONSTRUCTOR" << std::endl;
+        // std::cout <<  "CREATING FROM EMPTY CONSTRUCTOR" << std::endl;
     }
 
     static uint32_t getid() {
@@ -252,12 +273,16 @@ public:
         return &border;
     }
 
-    void set_background_color(RGBA c) {
+    virtual void set_background_color(RGBA c) {
         bg_color = c;
     }
 
-    void set_foreground_color(RGBA c) {
+    virtual void set_foreground_color(RGBA c) {
         fg_color = c;
+    }
+
+    virtual void set_font_size (uint8_t c) {
+        font_size = c;
     }
 
     std::vector<Element *> get_children() {
@@ -328,9 +353,14 @@ public:
             return;
         }
 
-        draw_quad(true_rect, bg_color, window);
-
-        draw_border( window );
+        if ( border.is_rounded() ) {
+            draw_rounded_quad(&true_rect, bg_color, border.radius, Edges(0), window);
+            // border
+            draw_rounded_quad(&true_rect, border.get_color(), border.radius, border.edges(), window);
+        } else {
+            draw_quad(true_rect, bg_color, window);
+            draw_border( window );
+        }
 
         draw_children(NULL, window);
     }
@@ -378,22 +408,25 @@ public:
 
         for (auto el : children)
         {
-            auto r = el->get_true_rect();
+            auto tr = *el->get_true_rect();
+            auto r = el->get_rect();
+            if ( r->width >= 0 )  { tr.width = r->width;   }
+            if ( r->height >= 0 ) { tr.height = r->height; }
 
             if ( el->rect.width == Layout::FitContent || el->rect.height == Layout::FitContent) {
-                el->calc_fit_content_self(r, window);
+                el->calc_fit_content_self(&tr, window);
             }
 
-            if ( r->height > c.max_height) {
-                c.max_height = r->height; 
+            if ( tr.height > c.max_height) {
+                c.max_height = tr.height; 
             }
 
-            if ( r->width > c.max_width) {
-                c.max_width = r->width;
+            if ( tr.width > c.max_width) {
+                c.max_width = tr.width;
             }
 
-            c.total_width  += r->width; 
-            c.total_height += r->height; 
+            c.total_width  += tr.width; 
+            c.total_height += tr.height; 
 
             // r->debug();
             // std::cout << "TW = " << c.total_width  << std::endl;
@@ -576,15 +609,23 @@ public:
 
 /**
  *
- *
  */
 class Row : public Element
 {
 public:
-    uint8_t gap;
+    uint8_t gap = 0;
+    Alignment m_align_x = Alignment::None;
+    Alignment m_align_y = Alignment::None;
 
-    Row(Size s, uint8_t gap, RGBA c) : gap(gap), Element(s, c) { lm = LayoutMode::Auto; }
-    Row(Rect r, uint8_t gap, RGBA c) : gap(gap), Element(r, c) { lm = LayoutMode::Auto; };
+    explicit Row( Size s, uint8_t gap ) : gap(gap), Element(s, TRANSPARENT) { lm = LayoutMode::Auto; }
+    explicit Row( Size s, uint8_t gap, RGBA c ) : gap(gap), Element(s, c) { lm = LayoutMode::Auto; }
+    explicit Row( Rect r, uint8_t gap, RGBA c ) : gap(gap), Element(r, c) { lm = LayoutMode::Auto; };
+    explicit Row( Size s, Alignment x ): Element(s, TRANSPARENT), m_align_x(x){ 
+        std::cout << "WITH ALIGN 1" << std::endl;
+    }
+    explicit Row( Size s, Alignment ax, Alignment ay ): Element(s, TRANSPARENT), m_align_x(ax), m_align_y(ay){
+        std::cout << "WITH ALIGN 2" << std::endl;
+    }
 
     virtual void calc_fit_content_self( Rect* current, Size *window ) override {
         auto c = calc_children_data(window);
@@ -600,21 +641,32 @@ public:
         }
     }
 
+    
 
     virtual void calc_children_true_rects(Rect *parent, Size *window) override
     {
-
         auto reserved = get_reserved_size();
 
         // --- Calc auto fill variables
         auto fw_count = count_fillw_children();
 
-        auto total_gap = (children.size() - 1) * gap;
+        auto total_gap     = (children.size() - 1) * gap;
         auto total_padding = reserved.width;
 
-        auto fw_size = true_rect.width - total_gap - get_fixed_width_children_sum() - total_padding;
-        auto fw_p_el = fw_count ? fw_size / fw_count : 0;
+        auto available_space = true_rect.width - total_gap - get_fixed_width_children_sum() - total_padding;
+        auto fw_p_el = fw_count ? available_space / fw_count : 0;
         // ---
+
+        auto c = calc_children_data(window);
+        if ( m_align_x == Alignment::Even ) {
+            // for this alignment to work there msut be no FILL children;
+            // otherwise it would span to the whole available space
+            if ( fw_count == 0 ) {
+                auto total_width = rect.width == Fill ? parent->width : rect.width;
+                available_space = total_width - c.total_width - total_padding;
+                gap = available_space / (children.size() - 1);
+            }
+        }
 
         int i = 0;
         int offsetX = padding.right;
@@ -654,14 +706,32 @@ public:
                 el->calc_fit_content_self(&copy, window);
             }
 
+            if ( m_align_y != Alignment::None ) {
+                auto r = this->get_rect();
+                auto anchor = r->height > 0 
+                    ? r->height 
+                    : c.max_height;
+                if ( m_align_y == Alignment::Center ) {
+                    copy.y += ( anchor - copy.height ) >> 1;
+                }
+            }
+
             el->set_true_rect(copy);
 
             el->calc_children_true_rects(&true_rect, window);
-            // el->draw( &copy, window);
 
             offsetX += copy.width;
+
             i++;
         }
+    }
+
+    void set_alignment_x( Alignment ax ) {
+        m_align_x = ax;
+    }
+
+    void set_alignment_y( Alignment ay ) {
+        m_align_y = ay;
     }
 };
 

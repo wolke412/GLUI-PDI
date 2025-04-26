@@ -18,7 +18,6 @@ class Button: public Focusable, public Hoverable {
     private:
         std::unique_ptr<Text> text_;
 
-        uint8_t font_size = DEFAULT_FONT_SIZE;
 
     public:
         click_callback_t cb_onclick;
@@ -30,6 +29,7 @@ class Button: public Focusable, public Hoverable {
             capabilities |= CClickable;            
 
             auto t = std::make_unique<Text>(text);  
+            t->set_font_size( font_size );
             child(t.get());                         
 
             text_ = std::move(t);                   
@@ -38,6 +38,14 @@ class Button: public Focusable, public Hoverable {
         Text* get_text() {
             return dynamic_cast<Text*>(children[0]);
         }  
+
+        virtual void set_font_size( uint8_t fs ) override  {
+            text_->set_font_size( fs );
+        }
+
+        virtual void set_foreground_color (RGBA c) override  {
+            text_->set_foreground_color( c );
+        }
 
         void onclick( click_callback_t cb ) {
             cb_onclick = cb;
