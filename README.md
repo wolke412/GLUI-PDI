@@ -24,7 +24,7 @@ I designed and developed an **OpenGL-based 2D UI framework** in C++ to support t
 
 ## 🧪 Software Screenshot
 
-![original](images/screenshot1.jpeg)
+![app_face](images/screenshot1.jpeg)
 
 ---
 
