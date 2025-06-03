@@ -644,14 +644,14 @@ public:
     switch (key)
     {
 
-    case GLFW_KEY_ESCAPE:
-    {
-      if (action == GLFW_PRESS)
-      {
-        glfwSetWindowShouldClose(w, GL_TRUE);
-        return;
-      }
-    }
+    //case GLFW_KEY_ESCAPE:
+    //{
+    //  if (action == GLFW_PRESS)
+    //  {
+    //    glfwSetWindowShouldClose(w, GL_TRUE);
+    //    return;
+    //  }
+    //}
     }
 
     auto focused = GLUI::instance()->get_focused();
