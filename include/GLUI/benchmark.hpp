@@ -46,6 +46,7 @@ public:
     static void start()
     {
         Benchmark::m_start = high_resolution_clock::now()   ;
+
         if ( m_monitor_gpu ) {
             glBeginQuery(GL_TIME_ELAPSED, Benchmark::m_gl_query );
         }
@@ -69,9 +70,11 @@ public:
     {
         Benchmark::m_stop = high_resolution_clock::now();
         Benchmark::m_info = mallinfo();
-
-        glEndQuery(GL_TIME_ELAPSED);
-        glGetQueryObjectui64v(m_gl_query, GL_QUERY_RESULT, &Benchmark::m_gpu_time);
+        
+        if ( m_monitor_gpu ) {
+            glEndQuery(GL_TIME_ELAPSED);
+            glGetQueryObjectui64v(m_gl_query, GL_QUERY_RESULT, &Benchmark::m_gpu_time);
+        }
     }
 
     static uint64_t to_unit( int64_t t, Unit u  ) {

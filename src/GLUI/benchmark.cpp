@@ -21,5 +21,5 @@ void Benchmark::display(GLUI *glui)
 
     RenderText(std::to_string(static_cast<int>(fps)) + " FPS", Coord(0, 0), .5, RGBA(0, .8, .45), &window_size);
     RenderText(std::to_string(m_info.uordblks / 1024.0 / 1024.0) + " MB", Coord(60, 0), .5, RGBA(.8, .4, .45), &window_size);
-    RenderText(std::to_string( Benchmark::to_unit(m_gpu_time, Micro) ) + " us", Coord(220, 0), .5, RGBA(.6, .6, .25), &window_size);
+    // RenderText(std::to_string( Benchmark::to_unit(m_gpu_time, Micro) ) + " us", Coord(220, 0), .5, RGBA(.6, .6, .25), &window_size);
 }

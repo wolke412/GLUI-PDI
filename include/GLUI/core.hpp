@@ -23,6 +23,7 @@
 #include <GLUI/collision.hpp>
 #include <GLUI/buttons.hpp>
 #include <GLUI/layout.hpp>
+#include <GLUI/logger.hpp>
 
 
 #include <GLUI/hotkeys.hpp>
@@ -168,7 +169,7 @@ public:
     }
 
     glfwMakeContextCurrent(window);
-    // glfwSwapInterval(0);
+    glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {

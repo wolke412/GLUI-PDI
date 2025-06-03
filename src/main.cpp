@@ -37,7 +37,7 @@ int main()
     pdi.get_output()->set_is_framebuffer(true);
 #endif
 
-    Benchmark::monitor_gpu();
+    // Benchmark::monitor_gpu();
 
     while( ! glui.should_close() )
     {

@@ -1,4 +1,6 @@
+#include "GLUI/core.hpp"
 #include <GLUI/multipassfbo.hpp>
+#include <string>
 
 MultiPassFBO::MultiPassFBO(int width, int height) : width(width), height(height) {
     setup_fbos();
@@ -49,12 +51,18 @@ void MultiPassFBO::process(GLuint inputTexture, const std::vector<FnShader> &pas
     writeIndex = 1;
 
     glViewport(0, 0, width, height);
-
+    
+    Logger::Log( 
+        Color::Cyan( "Initializing Multipass FBO with " + std::to_string(passes.size()) + " passes" ) 
+    );
+    // Logger::Log("----------------------------------------");
+    Logger::Log( "  +" );
+    Logger::Log( "  |" );
+    
     auto tex = inputTexture;
     for (size_t i = 0; i < passes.size(); ++i) {
         glBindFramebuffer(GL_FRAMEBUFFER, ping_pong_fbos[writeIndex]);
-        std::cout << "Stage: " << i << " Textue: " << tex << std::endl;
-
+        
         GLuint query;
         glGenQueries(1, &query);
         glBeginQuery(GL_TIME_ELAPSED, query);
@@ -62,15 +70,24 @@ void MultiPassFBO::process(GLuint inputTexture, const std::vector<FnShader> &pas
         passes[i](tex, &glshit, this);
 
         glEndQuery(GL_TIME_ELAPSED);
+
         GLuint time;
         glGetQueryObjectuiv(query, GL_QUERY_RESULT, &time);
-        std::cout << "Pass " << i << " time: " << (time / 1000000.0) << " ms" << std::endl;
         glDeleteQueries(1, &query);
+
+        auto timestr = std::string(std::to_string(time/ 1e6)) + " ms";
+
+        Logger::Log( "  +----+ Stage: \t\t"   + std::to_string(i));
+        Logger::Log( "  |    | Texture: \t\t" + std::to_string(tex) );
+        Logger::Log( "  |    | Took: \t\t"    + Color::Green( timestr ) );
 
         times.push_back( time / 1000000.0 );
 
         swap_buffers();
+
         tex = ping_pong_tex[readIndex];
+
+        Logger::Log( "  |     ");
     }
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, ping_pong_fbos[readIndex]);
