@@ -24,7 +24,7 @@ I designed and developed an **OpenGL-based 2D UI framework** in C++ to support t
 
 ## 🧪 Software Screenshot
 
-![app_face](images/screenshot1.jpeg)
+![original](images/screenshot.jpeg)
 
 ---
 
@@ -44,7 +44,7 @@ While each method had its merits, **none of them came remotely close to the perf
 
 Ultimately, I implemented a **multi-pass shader pipeline** using **ping-pong Framebuffer Objects (FBOs)**. This allows applying multiple image effects (filters, blurs, edge detection, etc.) in succession **without ever reading pixels back to the CPU** and with **no performance degradation**.
 
-### ⬇️ Console timing log for `screenshot1.jpeg`:
+### ⬇️ Console timing log for `screenshot.jpeg`:
 
 *Soon i'll insert a pretty console print here XD*
 
