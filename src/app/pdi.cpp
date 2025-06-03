@@ -7,6 +7,7 @@
 
 
 
+Shader* shader_invert      = nullptr;
 Shader* shader_brightness  = nullptr;
 Shader* shader_threshold   = nullptr;
 Shader* shader_greyscale   = nullptr;
@@ -19,7 +20,11 @@ Shader* shader_robinson = nullptr;
 Shader* shader_morph_dilation = nullptr;
 Shader* shader_morph_erosion  = nullptr;
 
+Shader* shader_thinner_holt = nullptr;
+
+
 void PDI::load_shaders() {
+    shader_invert      = new Shader ("shaders/tex_rect.vs", "shaders/filters/invert.fs");
     shader_brightness  = new Shader ("shaders/tex_rect.vs", "shaders/filters/brightness-contrast.fs");
     shader_greyscale   = new Shader ("shaders/tex_rect.vs", "shaders/filters/greyscale.fs");
     shader_threshold   = new Shader ("shaders/tex_rect.vs", "shaders/filters/threshold.fs");
@@ -31,6 +36,8 @@ void PDI::load_shaders() {
     //
     shader_morph_dilation = new Shader ("shaders/tex_rect.vs", "shaders/morphology/dilation.fs");
     shader_morph_erosion  = new Shader ("shaders/tex_rect.vs", "shaders/morphology/erosion.fs");
+    //
+    shader_thinner_holt   = new Shader ("shaders/tex_rect.vs", "shaders/morphology/thinner-holt.fs");
 }
 
 void PDI::layout() {
@@ -74,7 +81,13 @@ void PDI::setup_hotkeys() {
 
         auto bin = o->get_binary();
 
-        o->save( "static/save.jpg" );
+        std::string ext  = o->get_channel_count() == 3 ? "jpg" : "png";
+        std::string path = "static/save";
+        path.append(".");
+        path.append(ext);
+
+
+        o->save( path );
     });
 
 

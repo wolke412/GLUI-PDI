@@ -1,4 +1,5 @@
-#include <glui.hpp>
+#include "GLUI/draw.hpp"
+#include <GLUI/glui.hpp>
 #include <GLUI/components/scrollable.hpp>
 
 // Base class for UI elements with children
@@ -118,14 +119,13 @@ class ScrollablePane {
         
           Size s(window_width, window_height);
 
-
           // Draw scrollbar
           draw_quad(Rect(
               getScrollbarRect().x, 
               getScrollbarRect().y, 
               getScrollbarWidth(), 
               getScrollbarHeight()),
-              RGB(.2,.25,.4),
+              RGBA(.2,.25,.4, 1.),
               &s
             ); 
       }
@@ -136,7 +136,13 @@ class ScrollablePane {
       Rect getScrollbarRect() {
           float scrollbarX = rect.x + rect.width - getScrollbarWidth() - 2;
           float scrollbarY = rect.y + (rect.height - getScrollbarHeight()) - (scroll_offset / contentHeight) * rect.height;
-          return { scrollbarX, scrollbarY, getScrollbarWidth(), getScrollbarHeight() };
+             
+          return { 
+            (uint16_t)scrollbarX, 
+            (uint16_t)scrollbarY, 
+            (uint16_t)getScrollbarWidth(),
+            (uint16_t)getScrollbarHeight() 
+          };
       }
   
       // Helper to get the scrollbar height based on content

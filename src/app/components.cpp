@@ -410,6 +410,12 @@ void pdi_make_transform_dropdown(PDI *pdi, Element *nav, Element *fcont){
 void pdi_make_segmentation_dropdown(PDI *pdi, Element *nav, Element *fcont){
 
     DropdownOption d[] = {
+        { "Inverter", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::Invert() );
+                pdi->update_pipeline();
+            } 
+        },
         { "Greyscale", 
             [=](Focusable& f){
                 pdi->get_pipeline()->push( new BP::Greyscale(1., 1., 1.) );
@@ -493,6 +499,12 @@ void pdi_make_morphology_dropdown(PDI *pdi, Element *nav, Element *fcont){
         { "Fechamento", 
             [=](Focusable& f){
                 pdi->get_pipeline()->push( new BP::Closing(BP::MorphKernel::Cross) );
+                pdi->update_pipeline();
+            } 
+        },
+        { "Afinamento", 
+            [=](Focusable& f){
+                pdi->get_pipeline()->push( new BP::ThinningHolt(1) );
                 pdi->update_pipeline();
             } 
         },

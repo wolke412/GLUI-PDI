@@ -16,6 +16,13 @@ Element* label_field_horizontal( std::string label, Element* field ) {
     return r;
 }
 
+Stylesheet GET_MY_SLIDER_HANDLE_STYLE (){
+    return Stylesheet {
+        .background_color = Theme::PRIMARY,
+        .border = Border(2, Opacity(WHITE, .2), Corners(4)),
+        .size = Size(10, 20)
+    };
+}
 
 /**
  *  ============================================================
@@ -41,10 +48,12 @@ Element* BP::Brightness::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     p->set_padding(20);
 
-    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
-    auto c_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    auto t_in = new InputRange( GET_MY_SLIDER_HANDLE_STYLE() );
+    auto c_in = new InputRange( GET_MY_SLIDER_HANDLE_STYLE() );
+
     t_in->set_size( Size( 200, 20 ) );
     c_in->set_size( Size( 200, 20 ) );
+
     t_in->onchange([&, pdi](Input<float> &i) {
         brightness = *i.get_value();
         pdi->request_update();
@@ -65,6 +74,23 @@ Element* BP::Brightness::build (PDI *pdi) {
 
 }
 
+void BP::Invert::apply( PDI *pdi) const {
+
+    pdi->get_pipeline()->push_shader( [&]( GLuint tex, GLShit* g, MultiPassFBO* m ) {
+            
+        std::cout << "Inverter" << std::endl; 
+        shader_invert->use();
+
+        m->apply(tex);
+    });
+}
+
+Element* BP::Invert::build (PDI *pdi) {
+    auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
+    return p;
+}
+
+
 void BP::Threshold::apply(PDI* pdi) const {
     std::cout << "Threshold (" << threshold << ")" << std::endl; 
     //check gpu
@@ -81,7 +107,7 @@ Element* BP::Threshold::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     p->set_padding(20);
 
-    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    auto t_in = new InputRange( GET_MY_SLIDER_HANDLE_STYLE() );
     t_in->set_size( Size( 200, 20 ) );
     t_in->onchange([&, pdi](Input<float> &i) {
         threshold = *i.get_value();
@@ -277,7 +303,7 @@ Element* BP::Sobel::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     p->set_padding(20);
 
-    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    auto t_in = new InputRange( GET_MY_SLIDER_HANDLE_STYLE() );
     t_in->set_size( Size( 200, 20 ) );
     t_in->onchange([&, pdi](Input<float> &i) {
         t = *i.get_value();
@@ -313,7 +339,7 @@ Element* BP::Robinson::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     p->set_padding(20);
 
-    auto t_in = new InputRange( Size(Fill, FitContent), TRANSPARENT );
+    auto t_in = new InputRange( GET_MY_SLIDER_HANDLE_STYLE() );
     t_in->set_size( Size( 200, 20 ) );
     t_in->onchange([&, pdi](Input<float> &i) {
         t = *i.get_value();
@@ -382,11 +408,20 @@ void BP::Opening::apply(PDI *pdi) const
 {
     pdi->get_pipeline()->push_shader([&](GLuint tex, GLShit *g, MultiPassFBO *m){
 
-        std::cout << "Abertura (" << "Type" << ", " << (k == MorphKernel::Cross ? "+" : "Sq" ) << ")" << std::endl;
+        std::cout << "Abertura[1/2] (" << "Type" << ", " << (k == MorphKernel::Cross ? "+" : "Sq" ) << ")" << std::endl;
 
         shader_morph_erosion->use();
         shader_morph_erosion->setFloat2("texelSize", 1./(float)m->width, 1./(float)m->height );
         shader_morph_erosion->setInt("kernel_type", (int)k);
+
+        m->apply(tex); 
+        return; 
+    });
+
+    pdi->get_pipeline()->push_shader([&](GLuint tex, GLShit *g, MultiPassFBO *m){
+
+        std::cout << "Abertura[2/2] (" << "Type" << ", " << (k == MorphKernel::Cross ? "+" : "Sq" ) << ")" << std::endl;
+
         shader_morph_dilation->use();
         shader_morph_dilation->setFloat2("texelSize", 1./(float)m->width, 1./(float)m->height );
         shader_morph_dilation->setInt("kernel_type", (int)k);
@@ -406,12 +441,19 @@ Element* BP::Opening::build (PDI *pdi) {
 void BP::Closing::apply(PDI *pdi) const
 {
     pdi->get_pipeline()->push_shader([&](GLuint tex, GLShit *g, MultiPassFBO *m){
-
-        std::cout << "Fechamento (" << "Type" << ", " << (k == MorphKernel::Cross ? "+" : "Sq" ) << ")" << std::endl;
+        std::cout << "Fechamento[1/2] (" << "Type" << ", " << (k == MorphKernel::Cross ? "+" : "Sq" ) << ")" << std::endl;
 
         shader_morph_dilation->use();
         shader_morph_dilation->setFloat2("texelSize", 1./(float)m->width, 1./(float)m->height );
         shader_morph_dilation->setInt("kernel_type", (int)k);
+
+        m->apply(tex); 
+        return; 
+    });
+
+    pdi->get_pipeline()->push_shader([&](GLuint tex, GLShit *g, MultiPassFBO *m){
+        std::cout << "Fechamento[2/2] (" << "Type" << ", " << (k == MorphKernel::Cross ? "+" : "Sq" ) << ")" << std::endl;
+
         shader_morph_erosion->use();
         shader_morph_erosion->setFloat2("texelSize", 1./(float)m->width, 1./(float)m->height );
         shader_morph_erosion->setInt("kernel_type", (int)k);
@@ -419,11 +461,58 @@ void BP::Closing::apply(PDI *pdi) const
         m->apply(tex); 
         return; 
     });
+
 }
 
 Element* BP::Closing::build (PDI *pdi) {
     auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     // p->set_padding(20);
     // p->child(new Text("Fechamento"));
+    return p;
+}
+
+void BP::ThinningHolt::apply (PDI *pdi) const 
+{
+    for (int i = 0; i < iter; i++ ) {
+        pdi->get_pipeline()->push_shader([&](GLuint tex, GLShit *g, MultiPassFBO *m){
+
+            std::cout << "Holt (" << "Type" << ", " <<" HOLT" << ")" << std::endl;
+            shader_thinner_holt->use();
+            shader_thinner_holt->setFloat2("texelSize", 1./(float)m->width, 1./(float)m->height );
+            shader_thinner_holt->setInt("subIter", 1);
+
+            m->apply(tex); 
+            return; 
+        });
+        pdi->get_pipeline()->push_shader([&](GLuint tex, GLShit *g, MultiPassFBO *m){
+
+            std::cout << "Holt (" << "Type" << ", " <<" HOLT" << ")" << std::endl;
+            shader_thinner_holt->use();
+            shader_thinner_holt->setFloat2("texelSize", 1./(float)m->width, 1./(float)m->height );
+            shader_thinner_holt->setInt("subIter", 2);
+
+            m->apply(tex); 
+            return; 
+        });
+    }
+}
+
+Element* BP::ThinningHolt::build (PDI *pdi) {
+    auto p    = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
+    p->set_padding(20);
+
+    auto t_in = new InputRange( GET_MY_SLIDER_HANDLE_STYLE() );
+    t_in->set_size( Size( 200, 20 ) );
+    t_in->set_range(1, 200);
+    t_in->onchange([&, pdi](Input<float> &i) {
+        float p_iter = *i.get_value();
+        iter = (int)p_iter;
+        pdi->request_update();
+    });
+    t_in->set_value(iter);
+
+    auto r = label_field_horizontal( "Iterações", t_in );
+
+    p->child(r);
     return p;
 }

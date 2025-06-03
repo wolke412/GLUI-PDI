@@ -9,6 +9,7 @@
 
 class PDI;
 
+extern Shader *shader_invert;
 extern Shader *shader_brightness;
 extern Shader *shader_threshold;
 extern Shader *shader_greyscale;
@@ -20,6 +21,8 @@ extern Shader *shader_robinson;
 
 extern Shader *shader_morph_dilation;
 extern Shader *shader_morph_erosion;
+
+extern Shader *shader_thinner_holt;
 
 /**
  *  ============================================
@@ -87,6 +90,15 @@ namespace BP
     struct Scale
     {
         float factor;
+    };
+
+    class Invert : public Fn
+    {
+    public:
+        Invert() {}
+        virtual std::string get_title() const { return "Inverter"; }
+        virtual void apply(PDI *pdi) const;
+        virtual Element *build(PDI *pdi);
     };
 
     class Brightness : public Fn
@@ -222,6 +234,11 @@ namespace BP
         virtual Element *build(PDI *pdi);
     };
 
+    /**
+     * TODO: This does not work as expected::
+     * Maybe change erosion and dilation to single shader and make
+     * this an colsing a composed operation.
+     */
     class Opening : public Fn
     {
         MorphKernel k;
@@ -234,6 +251,9 @@ namespace BP
         virtual Element *build(PDI *pdi);
     };
 
+    /**
+     * TODO: Descripted in the class above ;)
+     */
     class Closing : public Fn
     {
         MorphKernel k;
@@ -242,6 +262,16 @@ namespace BP
     public:
         Closing(MorphKernel ke) : k(ke) {}
         virtual std::string get_title() const { return "Fechamento"; }
+        virtual void apply(PDI *pdi) const;
+        virtual Element* build(PDI *pdi);
+    };
+
+    class ThinningHolt : public Fn
+    {
+    public:
+        int iter = 1;
+        ThinningHolt(int t ) : iter(t){ }
+        virtual std::string get_title() const { return "Afinamento (Holt)"; }
         virtual void apply(PDI *pdi) const;
         virtual Element* build(PDI *pdi);
     };

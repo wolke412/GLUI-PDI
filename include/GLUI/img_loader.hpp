@@ -100,6 +100,8 @@ public:
     
         stbi_flip_vertically_on_write(true);
 
+        std::cout << "Saving image | " << as << " | [ " <<  m_img_size.width << " x " << m_img_size.height << " ]" << std::endl;
+
         bool success = false;
     
         if (ext == "png") {
@@ -203,7 +205,7 @@ public:
         //     std::cout << "Freed old"  << std::endl;
         // }
 
-        m_fbo.read( m_data, &m_img_size );
+        m_fbo.read( m_data, &m_img_size, m_ch_count );
 
         std::cout << "Successfully read."  << std::endl;
     }
@@ -225,6 +227,8 @@ public:
 
         if (m_data)
         {
+            m_img_size.debug("Generating texture for: ");
+
             if ( m_ch_count == 4 ) {
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_img_size.width, m_img_size.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, m_data);
             }

@@ -63,6 +63,7 @@ struct Stylesheet {
     Property<Border,  0>   border = Border(0, TRANSPARENT);
     Property<Padding, 0>   padding = Padding(0);
     Property<int,     0>   font_size =  24;
+    Property<Size,    0>   size =  Size(Layout::FitContent, Layout::FitContent);
 };
 
 struct HoverableStylesheet {};

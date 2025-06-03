@@ -63,6 +63,15 @@ struct Padding {
 
 };
 
+
+template <typename T>
+struct TEdges {
+    T top, right, bottom, left;
+
+    TEdges( T all ) : top(all), right(all), bottom(all), left(all) {}
+    TEdges( T t, T r, T b, T l ) : top(t), right(r), bottom(b), left(l) {}
+};
+
 struct Edges {
     uint8_t top, right, bottom, left;
 

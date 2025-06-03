@@ -17,10 +17,13 @@ struct GLShitFBO {
     GLuint texture;
     GLuint RBO;
 
-    void read( uint8_t* nout, Size* sz ) {
+    void read( uint8_t* nout, Size* sz, int channel_count) {
         glBindFramebuffer(GL_FRAMEBUFFER, FBO);
         glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glReadPixels(0, 0, sz->width, sz->height, GL_RGB, GL_UNSIGNED_BYTE, nout);
+
+        auto a = channel_count == 3 ? GL_RGB : GL_RGBA;
+        glReadPixels(0, 0, sz->width, sz->height, a, GL_UNSIGNED_BYTE, nout);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
     };
 

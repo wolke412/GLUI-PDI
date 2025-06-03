@@ -1,6 +1,19 @@
 #include <GLUI/glui.hpp>
 #include <GLUI/stylesheet.hpp>
 
+
+const Stylesheet HANDLE_STYLESHEET = Stylesheet{
+    .background_color = Opacity(WHITE, .1),
+    .border = Border( 2, Opacity(WHITE, .2), Corners( 4 )),
+    .size=Size(10, 20)
+};
+
+const Stylesheet TRACK_STYLESHEET = Stylesheet{
+    .background_color = LIGHTGREY,
+    .border = Border( 1, Opacity(WHITE, .4), Corners( 4 )),
+    .size=Size(Fill, 4)
+};
+
 class Handle : public Draggable {
 private:
 public:
@@ -9,25 +22,33 @@ public:
 
 class InputRange : public Input<float>, public Element {
 private:
-   Size handle_size = Size(10, 20); 
+    Stylesheet handle_style = HANDLE_STYLESHEET;
+    Stylesheet track_style  = TRACK_STYLESHEET;
 
-   int track_width = 4;
+    float m_min = 0;
+    float m_max = 1;
 
-   float m_min = 0; 
-   float m_max = 1;
-
-   Element * m_handle_element = nullptr;
+    Element *m_handle_element = nullptr;
 
 public:
-    InputRange( Size sz, RGBA color ): Element(sz, color){
+    InputRange( Stylesheet hdl, Stylesheet trk = TRACK_STYLESHEET): 
+        InputRange(Size(Layout::Fill, Layout::FitContent), hdl, trk){}
 
-        int offset_track = (handle_size.height >> 1) - (track_width >> 1);
+    InputRange( Size sz, Stylesheet hdl, Stylesheet trk = TRACK_STYLESHEET): Element(sz, TRANSPARENT){
+        Size handle_size = hdl.size; 
+        Size track_size  = trk.size; 
+        int offset_track = (handle_size.height >> 1) - ( track_size.height >> 1);
 
-        Element* ghost_track = new Element( Size( Layout::Fill, handle_size.height ), TRANSPARENT );
-        Element* visible_track       = new Element( Rect( 0, offset_track, Layout::Fill, track_width ), Opacity(WHITE, .1) );
-        visible_track->set_border( Border(1, Opacity(WHITE, .4)) );
+        Element* ghost_track    = new Element( Size( Layout::Fill, handle_size.height ), TRANSPARENT );
+        Element* visible_track  = new Element( 
+            Rect( Coord(0, offset_track), trk.size ), 
+            trk.background_color
+        );
 
-        Handle *h = new Handle( handle_size, RGBA(.4, .7, .2));
+        visible_track->set_border( trk.border );
+
+        Handle *h = new Handle( handle_size, hdl.background_color );
+        h->set_border( hdl.border );
 
         h->set_boundary_type(Parent);
 
@@ -58,6 +79,9 @@ public:
 
         m_handle_element = h;
 
+        track_style  = trk;
+        handle_style = hdl;
+
         // onclick([=](Clickable* c) {
         //     std::cout << "CLiquei na input range" << std::endl;
         // });
@@ -77,7 +101,9 @@ public:
 
 private:
     void calc_handle_position() {
-        float true_width = m_handle_element->m_parent->get_true_rect()->width - handle_size.width;
+        Size hds = handle_style.size;
+
+        float true_width = m_handle_element->m_parent->get_true_rect()->width - hds.width;
         float at = *get_value(); 
 
         int16_t x = at * true_width;
