@@ -46,6 +46,12 @@ struct Size {
         }
         std::cout << "(w=" << width << ", h=" << height << ")\n";
     }
+
+    std::string pretty() const {
+        std::ostringstream oss;
+        oss << "(" << width << " x " << height << ")";
+        return oss.str();
+    }
 };
 
 struct Rect {

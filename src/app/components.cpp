@@ -39,6 +39,7 @@ void Components::layout( PDI* pdi ) {
     Row *navbar  = new Row(Rect(0, 0, LAYOUT_FILL, 80), 20, Theme::BG_SHADE_300);
     Row *body    = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FILL), 20, Theme::BG_SHADE_100);
 
+    // std::cout << "ROOT HAS BEEN SET" << std::endl; 
 
     /**
      * 
@@ -48,41 +49,39 @@ void Components::layout( PDI* pdi ) {
      * ============================================================
      * 
      */
-    // Row* ROW_1   = new Row(  Size( FitContent, FitContent), 100, TRANSPARENT );
-    // Pile* PILE_1 = new Pile( Size( FitContent, FitContent),  20, TRANSPARENT );
+    {
+        // Row* ROW_1   = new Row(  Size( FitContent, FitContent), 100, TRANSPARENT );
+        // Pile* PILE_1 = new Pile( Size( FitContent, FitContent),  20, TRANSPARENT );
 
-    // ROW_1->set_border( Border(2, RGBA(1,0,0)));
-    // PILE_1->set_border(Border(2, RGBA(1,1,0)));
+        // ROW_1->set_border( Border(2, RGBA(1,0,0)));
+        // PILE_1->set_border(Border(2, RGBA(1,1,0)));
 
-    // ROW_1->set_padding(Padding(2));
-    // PILE_1->set_padding(Padding(2));
+        // ROW_1->set_padding(Padding(2));
+        // PILE_1->set_padding(Padding(2));
 
-    // Element* BOX_R = new Element( Size( 100, 100 ), RGBA(1,0,0) );
-    // Element* BOX_Y = new Element( Size( 100,  40 ), RGBA(1,1,0) );
-    // Element* BOX_G = new Element( Size( 100,  80 ), RGBA(0,1,0) );
+        // Element* BOX_R = new Element( Size( 100, 100 ), RGBA(1,0,0) );
+        // Element* BOX_Y = new Element( Size( 100,  40 ), RGBA(1,1,0) );
+        // Element* BOX_G = new Element( Size( 100,  80 ), RGBA(0,1,0) );
 
-    // ROW_1->child( BOX_R );
-    // ROW_1->child( PILE_1 );
-    // PILE_1->child( BOX_Y );
-    // PILE_1->child( new Text( "Ola meus amigos 1", RGBA( 1, 0 ,1 ) ) );
-    // PILE_1->child( BOX_G );
+        // ROW_1->child( BOX_R );
+        // ROW_1->child( PILE_1 );
+        // PILE_1->child( BOX_Y );
+        // PILE_1->child( new Text( "Ola meus amigos 1", RGBA( 1, 0 ,1 ) ) );
+        // PILE_1->child( BOX_G );
 
-    // PILE_1->child( new Text( "Ola meus amigos 2", WHITE ) );
+        // PILE_1->child( new Text( "Ola meus amigos 2", WHITE ) );
 
-    // PILE_1->child( new Button( "Botão 1", RGBA( 0, 1, 1 ) ) );
-    // PILE_1->child( new Button( "Botão 2", RGBA( 0.5, .5, 1 ) ) );
+        // PILE_1->child( new Button( "Botão 1", RGBA( 0, 1, 1 ) ) );
+        // PILE_1->child( new Button( "Botão 2", RGBA( 0.5, .5, 1 ) ) );
 
-    // ROW_1->child( new Text( "Texto qualquer", RGBA( 1, 0 ,1 ) ) );
-    // ROW_1->child( new Button( "Botão 4", RGBA( .8, .2, .5 ) ) );
+        // ROW_1->child( new Text( "Texto qualquer", RGBA( 1, 0 ,1 ) ) );
+        // ROW_1->child( new Button( "Botão 4", RGBA( .8, .2, .5 ) ) );
 
-    // root->child( ROW_1 );
+        // root->child( ROW_1 );
 
-    // return;
-
-
-    /**
-     * 
-     */
+        // return;
+    }
+    
     pdi_make_file_dropdown( pdi, navbar, root );
     pdi_make_transform_dropdown( pdi, navbar, root );
     pdi_make_segmentation_dropdown( pdi, navbar, root );
@@ -96,7 +95,7 @@ void Components::layout( PDI* pdi ) {
     std::cout << "SETTING LAYOUT" << std::endl; 
 
     navbar->set_padding(Padding(20));
-    body->set_padding(Padding(20));
+    body->set_padding(Padding(0));
     
     TextInput *input_img_path = new TextInput( 320 );    
 
@@ -140,19 +139,29 @@ void Components::layout( PDI* pdi ) {
 
     Text *head_in  = new Text( "Entrada" );
     Text *head_out = new Text( "Saída" );
+
+    Text *size_in  = new Text( img_h->get_size()->pretty()    , 14, Opacity( WHITE, .4 ) );
+    Text *size_out = new Text( img_h_out->get_size()->pretty(), 14, Opacity( WHITE, .4 ) );
+
+    // img_h->ondatachanged([](  ) {
+    //     std::cout << "Hello world" << std::endl;
+    // });
+
     head_in->set_foreground_color( Opacity( WHITE, .6 ) );
     head_out->set_foreground_color( Opacity( WHITE, .6 ) );
 
     // in_img_pile->child(input_img_path);
     in_img_pile->child(head_in);
+    in_img_pile->child(size_in);
     in_img_pile->child(im1);
 
     out_img_pile->child(head_out);
+    out_img_pile->child(size_out);
     out_img_pile->child(im2);
      
     Row  *images  = new Row(  Size ( LAYOUT_FILL, LAYOUT_FILL ), 20,  Theme::BG_SHADE_100 );
     Pile *sidebar = new Pile( Size ( 400, LAYOUT_FILL ), 20, Theme::BG_SHADE_200 );
-
+    images->set_padding(20);
 
     // TODO: make this less dumb
     pdi->render_pipeline = sidebar;

@@ -64,7 +64,7 @@ class Focusable : public virtual Element {
     }
 
     /**
-     * this is callbacks to the GLFW; not to GLUI...
+     * these are callbacks to the GLFW; not to GLUI...
      */
     virtual void cb_char_event(  unsigned int pressed, GLFWwindow *window ) {
       std::cout << "CHAR EVENT" << std::endl;

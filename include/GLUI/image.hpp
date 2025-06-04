@@ -51,7 +51,6 @@ class Image : public Element {
 
                 // this is a very dumb way of achieving this
                 if ( il->is_framebuffer() ) {
-
                     fbo_to_screen( &il->m_fbo, tr, il, window );
                 } else {
                     draw_tex_quad(tr, il, window);
@@ -60,6 +59,7 @@ class Image : public Element {
                 return;
             } 
 
+            // Children are the default "Image not loaded yet..."
             draw_quad(tr, RGBA(.1, .1, .1), window);
             draw_children(tr, window);
         }    

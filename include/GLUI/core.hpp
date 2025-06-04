@@ -11,6 +11,7 @@
 #include <iostream>
 
 #include <algorithm>
+#include <math.h>
 
 #include <ostream>
 #include <sys/types.h>
@@ -24,6 +25,7 @@
 #include <GLUI/buttons.hpp>
 #include <GLUI/layout.hpp>
 #include <GLUI/logger.hpp>
+// #include <GLUI/theme.hpp>
 
 
 #include <GLUI/hotkeys.hpp>
@@ -73,21 +75,19 @@ struct Mouse {
 
 class GLUI {
 public:
-  Size m_window_size      = Size(800, 600);
-  Size m_last_window_size = Size(800, 600);
+  Size m_window_size      = Size(500, 200);
+  Size m_last_window_size = Size(500, 200);
 
 private:
-
-  GLFWwindow *window;
 
   float m_delta_seconds = 0.;
   float m_previous_time = 0.;
 
-  Mouse mouse;
-  Hotkeys m_hotkeys;
+  GLFWwindow *m_window;
+  std::string m_title = "My GLUI App";
 
-
-  RGB m_clear_color = RGB(0, 0, 0);
+  RGBA m_clear_color = RGBA(0, 0, 0);
+  bool m_is_transparent = false;
 
   Element *shadow_root;
   Element *root;
@@ -102,28 +102,27 @@ private:
 
   static GLUI *singleton;
 
-  // static std::map<GLFWwindow*, GLUI*> m_geese;
+  Mouse mouse;
+  Hotkeys m_hotkeys;
 
-  GLUI(const char *title) : mouse(Mouse(Coord(0, 0)))
+  GLUI(const std::string title, Size winsz ) : m_title(title), m_window_size(winsz), mouse(Mouse(Coord(0, 0)))
   {
+    if (!glfwInit()) {
+      throw std::runtime_error("Failed to initialize GLFW");
+    }
 
-    glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-    window = glfwCreateWindow(800, 600, title, NULL, NULL);
-    // GLUI::m_geese[window] = this;
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   };
 
 public:
-  static GLUI &create(const char *title)
+  static GLUI &create(const char *title, Size winsz = Size(500, 200))
   {
     if (singleton == nullptr)
     {
-      singleton = new GLUI(title);
+      singleton = new GLUI(title, winsz);
     }
 
     return *singleton;
@@ -140,36 +139,36 @@ public:
     return singleton;
   }
 
-  // static GLUI* find(GLFWwindow* win) {
-  //   if (m_geese.find(win) == m_geese.end()) {
-  //     throw std::runtime_error("GLUI instance not found for the provided window.");
-  //   }
-
-  //   return m_geese[win];
-  // }
-
-  // static void destroy(GLFWwindow* win) {
-  //   if (m_geese.find(win) != m_geese.end()) {
-  //     delete m_geese[win];
-  //     m_geese.erase(win);
-  //   }
-  // }
+  void widget() {
+    m_is_transparent = true;
+  }
 
   // Delete copy constructor and assignment operator to enforce singleton property
   GLUI(const GLUI &) = delete;
   GLUI &operator=(const GLUI &) = delete;
 
-  bool begin( RGB clear_color )
+  bool begin( RGBA clear_color )
   {
+    if ( m_is_transparent ) {
+      // glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+      glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+      glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE); 
+    }
 
-    if (window == NULL)
+    // GLUI::m_geese[window] = this;
+    m_window = glfwCreateWindow(m_window_size.width, m_window_size.height, m_title.c_str(), NULL, NULL);
+
+    if (m_window == NULL)
     {
       std::cout << "Failed to create GLFW window" << std::endl;
       glfwTerminate();
+      throw std::runtime_error("GLFW window creation failed");
     }
 
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(0);
+    align_window_center();
+
+    glfwMakeContextCurrent(m_window);
+    // glfwSwapInterval(0);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -178,15 +177,15 @@ public:
 
     m_clear_color = clear_color;
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, m_window_size.width, m_window_size.height);
 
-    glfwSetFramebufferSizeCallback(window, cb_framebuffer_resize);
-    glfwSetKeyCallback(window, cb_key_press_event);
-    glfwSetCharCallback(window, cb_char_event);
-    glfwSetMouseButtonCallback(window, cb_mouse_event);
-    glfwSetCursorPosCallback(window, cb_mouse_move_event);
+    glfwSetFramebufferSizeCallback(m_window, cb_framebuffer_resize);
+    glfwSetKeyCallback(m_window, cb_key_press_event);
+    glfwSetCharCallback(m_window, cb_char_event);
+    glfwSetMouseButtonCallback(m_window, cb_mouse_event);
+    glfwSetCursorPosCallback(m_window, cb_mouse_move_event);
 
-    glfwSetCursorPosCallback(window, cb_mouse_move_event);
+    glfwSetCursorPosCallback(m_window, cb_mouse_move_event);
 
     /**
      * Initializes drawing lib
@@ -198,11 +197,30 @@ public:
      */
     DEBUG_init_text();
 
+    /**
+     * Yeah
+     */
+    set_shadow_root();
+
     return true;
   }
 
+  void align_window_center() {
+    GLFWmonitor *primary = glfwGetPrimaryMonitor();
+    const GLFWvidmode *mode = glfwGetVideoMode(primary);
+
+
+    int window_width = m_window_size.width;
+    int window_height = m_window_size.height;
+
+    int xpos = (mode->width - window_width) / 2;
+    int ypos = (mode->height - window_height) / 2;
+
+    glfwSetWindowPos(m_window, xpos, ypos);
+  }
+
   bool should_close() {
-    return glfwWindowShouldClose(window);
+    return glfwWindowShouldClose(m_window);
   }
 
   void loop_start()
@@ -215,8 +233,8 @@ public:
      * dumb shit :
      */
     int win_w, win_h, fb_w, fb_h;
-    glfwGetWindowSize(window, &win_w, &win_h);
-    glfwGetFramebufferSize(window, &fb_w, &fb_h);
+    glfwGetWindowSize(m_window, &win_w, &win_h);
+    glfwGetFramebufferSize(m_window, &fb_w, &fb_h);
 
     auto s = get_window_size();
 
@@ -234,7 +252,7 @@ public:
     // send commands
     // glFinish(); 
     // glFlush();
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(m_window);
     glfwPollEvents();
   }
 
@@ -242,7 +260,7 @@ public:
   {
     double x, y;
 
-    glfwGetCursorPos(window, &x, &y);
+    glfwGetCursorPos(m_window, &x, &y);
 
     auto sz = get_window_size();
 
@@ -270,7 +288,7 @@ public:
   void clear() {
     auto c = &m_clear_color;
 
-    glClearColor( c->R, c->G, c->B, 1.0 );
+    glClearColor( c->R, c->G, c->B , c->A );
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
@@ -304,15 +322,15 @@ public:
     return root;
   }
 
+  void set_shadow_root() {
+    auto sz = get_window_size();
+    shadow_root = new Element(Rect(0, 0, sz.width, sz.height), TRANSPARENT);
+  }
+
   void set_root(Element *el)
   {
     std::cout << "Settings root: " << el->id << std::endl;
-
     root = el;
-
-    auto sz = get_window_size();
-
-    shadow_root = new Element(Rect(0, 0, sz.width, sz.height), BLACK);
     shadow_root->child( root );
   }
 
@@ -326,7 +344,7 @@ public:
 
     static Size static_window_size(0, 0);
 
-    glfwGetFramebufferSize(window, (int*)&static_window_size.width, (int*)&static_window_size.height);
+    glfwGetFramebufferSize(m_window, (int*)&static_window_size.width, (int*)&static_window_size.height);
 
     if ( 
          static_window_size.height != m_last_window_size.height 
@@ -406,9 +424,9 @@ public:
 
     if ( has_interactable ) {
       GLFWcursor* handCursor = glfwCreateStandardCursor(GLFW_HAND_CURSOR);
-      glfwSetCursor(window, handCursor);
+      glfwSetCursor(m_window, handCursor);
     }else {
-      glfwSetCursor(window, NULL);
+      glfwSetCursor(m_window, NULL);
     }
 
     // std::cout << "COLLISION PATH ::SIZE= " << m_hover_path.size() << std::endl;
@@ -554,7 +572,7 @@ public:
 
   GLFWwindow *get_window()
   {
-    return window;
+    return m_window;
   }
 
   Coord &get_mouse_position()
@@ -591,10 +609,10 @@ public:
 
     Size sz = get_window_size();
 
-    Benchmark::mark(); 
+    // Benchmark::mark(); 
 
     /**
-     * this is very bad for performance:
+     * This is very bad for performance:
      * TODO: change it to a manual check against last buffer window_size
      * 
      * @info: This is here because displayServer his asynchrnoous, so the BG can be rendered
@@ -644,14 +662,14 @@ public:
     switch (key)
     {
 
-    //case GLFW_KEY_ESCAPE:
-    //{
-    //  if (action == GLFW_PRESS)
-    //  {
-    //    glfwSetWindowShouldClose(w, GL_TRUE);
-    //    return;
-    //  }
-    //}
+    case GLFW_KEY_ESCAPE:
+    {
+      if (action == GLFW_PRESS)
+      {
+        glfwSetWindowShouldClose(w, GL_TRUE);
+        return;
+      }
+    }
     }
 
     auto focused = GLUI::instance()->get_focused();

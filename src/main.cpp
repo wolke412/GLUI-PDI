@@ -11,26 +11,27 @@
 int main()
 {
 
-    GLUI& glui = GLUI::create("Processamento Digital de Imagens");
+    GLUI& glui = GLUI::create("Processamento Digital de Imagens", Size(600, 400));
 
-    if ( ! glui.begin( (Theme::BG_SHADE_100).to_rgb() ) ) {
+    if ( ! glui.begin( Theme::BG_SHADE_100 ) ) {
         std::cerr << "Erro incializando GLUI." << std::endl;
         return -1;
     }
 
     PDI pdi(&glui);
 
-    pdi.layout();
     pdi.setup_hotkeys();
 
     glui.calc_elements();
 
-    pdi.get_input()->set_path("static/noisy-lena.jpeg");
+    pdi.get_input()->set_path("static/c/1.png");
     pdi.get_input()->load();
     pdi.get_input()->copy_to(pdi.get_output());
 
     auto o = pdi.get_output();
 
+
+    pdi.layout();
     pdi.request_update(); 
 
 #if USE_GPU == 1
@@ -42,7 +43,6 @@ int main()
     while( ! glui.should_close() )
     {
         Benchmark::start();
-
         glui.loop_start();
 
         /**
@@ -73,7 +73,7 @@ int main()
         // draw_rounded_quad( &r3,  WHITE, b3.radius, b3.edges(), &w );
 
 
-        // isso aqui é para propositos de teste apenas.
+        // . teste apenas.
         // glFinish();
 
         Benchmark::capture();

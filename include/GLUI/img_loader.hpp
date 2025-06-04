@@ -12,12 +12,16 @@
 #include <string>
 #include <memory>
 #include <filesystem>
+#include <functional>
+
 class ImageHandler {
     
 public:
     GLShitFBO m_fbo;
 
 private: 
+
+    std::function<void()> m_on_data_changed = nullptr;
 
     std::string m_path = "static/container.jpg";
     Size m_img_size = Size(0);
@@ -77,6 +81,7 @@ public:
 
         // m_data = std::make_shared<unsigned char *>( data );
         m_data = ( data );
+        // notify_data_changed();
 
         std::cout << "IMGLOADER::LOADED_IMG_OF w::"
                   << m_img_size.width
@@ -132,15 +137,16 @@ public:
         }
 
         m_data = data;
+        // notify_data_changed();
     }
 
     void copy_to( ImageHandler *to ) {
 
         if (!to) return; 
 
-        to->m_path = m_path;
-        to->m_img_size = m_img_size;
-        to->m_ch_count = m_ch_count;
+        to->m_path      = m_path;
+        to->m_img_size  = m_img_size;
+        to->m_ch_count  = m_ch_count;
         
         if ( to->is_loaded() ) {
             // Se tem uma imagem la tem que limpar ne tche
@@ -156,6 +162,17 @@ public:
             to->m_data = nullptr;
         }
     }
+
+    void ondatachanged(std::function<void()> callback) {
+        m_on_data_changed = callback;
+    }
+    void notify_data_changed() {
+        if (m_on_data_changed) {
+            m_on_data_changed();
+        }
+    }
+
+
 
     Size* get_size()  {
         return &m_img_size;
@@ -206,6 +223,7 @@ public:
         // }
 
         m_fbo.read( m_data, &m_img_size, m_ch_count );
+        // notify_data_changed();
 
         std::cout << "Successfully read."  << std::endl;
     }

@@ -145,14 +145,13 @@ std::string ftos_l(float value, int precision) {
 
 Element* BP::Greyscale::build (PDI *pdi) {
     auto p = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
-    auto r = new Row(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
+    auto r = new Row( Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
 
     auto pr = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     auto pg = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
     auto pb = new Pile(Rect(0, 0, LAYOUT_FILL, LAYOUT_FIT_CONTENT), 10, TRANSPARENT );
 
     p->set_padding(20);
-    p->child(new Text( "Greyscale" ));
 
     auto r_lb = new Text("R");
     auto r_in = new TextInput(Fill);
@@ -180,8 +179,6 @@ Element* BP::Greyscale::build (PDI *pdi) {
         B = std::stof( v.empty() ? "0" : v );
         pdi->request_update();
     });
-
-    p->child( new Element(Rect( Size(LAYOUT_FILL, 1) ), RGBA(.4,.4,.4)) );
 
     pr->child( r_lb  );
     pr->child( r_in );
@@ -264,6 +261,7 @@ Element* BP::Filter::build (PDI *pdi) {
         });
 
         p->child(r);
+        std::cout << "FInished Rendering Filter"  << std::endl;
         break;
     }
 

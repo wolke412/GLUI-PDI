@@ -10,10 +10,12 @@ BIN := main
 # ---------------------------------------- 
 
 # ---------------------------------------- 
-SOURCES := $(shell find $(SRC_DIR) -name '*.cpp' -o -name '*.c')
-OBJECTS := $(patsubst $(SRC_DIR)/%, $(OBJ_DIR)/%, $(SOURCES:.cpp=.o))
-OBJECTS := $(OBJECTS:.c=.o)
+SOURCES := $(shell find $(SRC_DIR) -type f \( -name '*.cpp' -o -name '*.c' \))
+OBJECTS := $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+OBJECTS := $(OBJECTS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+
 # ---------------------------------------- 
+
 
 
 .PHONY: all clean 

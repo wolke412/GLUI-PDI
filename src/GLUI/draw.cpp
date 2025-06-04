@@ -273,13 +273,19 @@ void draw_quad( Rect r, RGBA c , Size* window) {
  */
 
 
-void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
+void draw_tex_quad( Rect *re, ImageHandler *img, Size* window) {
+
+    Rect r = *re;
+    float aspect_ratio = img->get_size()->height / (float)img->get_size()->width;
+
+    // adjust r->height or r->width depending on fit mode (fit-width or fit-height)
+    r.height = r.width * aspect_ratio;
 
     float jvertices[8]; 
     float vertices[16]; // 8 for coord + 8 for tex
 
     // Normalizes vertexes from window space to GL space
-    normalize(r, window, jvertices);
+    normalize(&r, window, jvertices);
 
     apply_tex(jvertices, vertices);
 
@@ -324,6 +330,9 @@ void draw_tex_quad( Rect *r, ImageHandler *img, Size* window) {
     glDeleteBuffers(1, &VBO);
 }
 
+/**
+ * @deprecated This was used previously, not anymore, but i want to keep it as a "look how I got here, I was pretty dumb!"
+ */
 void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img, Size* win ) {
 
     // std::cout << "computing tex quad" << std::endl;
@@ -385,29 +394,37 @@ void compute_tex_quad( GLShitFBO* g, glm::mat3 kernel, ImageHandler *img, Size* 
     glViewport( 0, 0, win->width, win->height );
 }
 
-void fbo_to_screen( GLShitFBO *g, Rect *r, ImageHandler *img, Size* win ) {
+void fbo_to_screen( GLShitFBO *g, Rect *re, ImageHandler *img, Size* win ) {
     /**
      * ===============================
      *  Bind offscreen FBO as the source for reading.
      */
 
+
+    Rect r = *re;
+    float aspect_ratio = img->get_size()->height / (float)img->get_size()->width;
+
+    // adjust r->height or r->width depending on fit mode (fit-width or fit-height)
+    r.height = r.width * aspect_ratio;
+
     // convert top-left to bottom-left
-    int dest_x0 = r->x;
-    int dest_y0 = win->height - r->y - r->height; 
-    int dest_x1 = r->x + r->width;
-    int dest_y1 = win->height - r->y;
+    int dest_x0 = r.x;
+    int dest_y0 = win->height - r.y - r.height; 
+    int dest_x1 = r.x + r.width;
+    int dest_y1 = win->height - r.y;
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, g->FBO);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glViewport( 0, 0, win->width, win->height );
 
     glBlitFramebuffer(
-        0, 0, r->width, r->height, // source FBO region
+        // 0, 0, r->width, r->height,          // source FBO region
+        0, 0, img->get_size()->width, img->get_size()->height,          // source FBO region
         dest_x0, dest_y0, dest_x1, dest_y1,
         GL_COLOR_BUFFER_BIT, GL_NEAREST
     );
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind the framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);   // Unbind the framebuffer
     glDisable(GL_DEPTH_TEST);
 }
 
