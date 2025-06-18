@@ -106,7 +106,7 @@ offsets = [
 #
 def dfs(img, start_x, start_y, shape, mask):
     stack = [(start_x, start_y)]
-    mask.setat(start_x, start_y, shape.id)  # Mark as visited on push
+    mask.setat(start_x, start_y, shape.id)  
 
     while stack:
         x, y = stack.pop()
@@ -118,10 +118,10 @@ def dfs(img, start_x, start_y, shape, mask):
                 continue
             if img.getpx(nx, ny) != 1:
                 continue
-            if mask.getat(nx, ny) != 0:  # Already visited
+            if mask.getat(nx, ny) != 0:  
                 continue
 
-            mask.setat(nx, ny, shape.id)  # Mark before pushing
+            mask.setat(nx, ny, shape.id)  
             stack.append((nx, ny))
 
 shapes = []
@@ -147,6 +147,9 @@ print(f"FORMAS: {c}")
 #     print(f"shape {sh.id} composed of {len(sh.pixels)}")
 
 # !!!! PERGUNTAR PRA PORF MARTA O QUE PODE TER ACONTECIDO AQUI!
+# aparentemente é pq eu não processei perfeitamente a imagem;
+# protanto, foram gerados grupos de menos de 20 pixeis...
+# mas tudo certo, resolvido.
 shapes = [ s for s in shapes if len(s.pixels) > 20 ]
 
 timer.step("Filter shapes")
